@@ -1446,6 +1446,10 @@ def _render_single(ticker: str, output_path: Path | None = None) -> Path:
     out = output_path or (OUTPUT_DIR / "report.html")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html_content, encoding="utf-8")
+
+    # Also write to project root as index.html for GitHub Pages
+    (ROOT / "index.html").write_text(html_content, encoding="utf-8")
+
     return out
 
 
@@ -1459,6 +1463,10 @@ def _render_batch(
     out = output_path or (OUTPUT_DIR / "report.html")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html_content, encoding="utf-8")
+
+    # Also write to project root as index.html for GitHub Pages
+    (ROOT / "index.html").write_text(html_content, encoding="utf-8")
+
     return out
 
 
