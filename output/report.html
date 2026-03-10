@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARKET SIGNUM — NYSE Batch Scan 2026-03-10</title>
+<style>
+:root {
+  --bg:           #0d1117;
+  --bg-card:      #161b22;
+  --bg-card2:     #1c2128;
+  --border:       #30363d;
+  --border-light: #21262d;
+  --text:         #e6edf3;
+  --text-muted:   #8b949e;
+  --text-faint:   #6e7681;
+
+  --green:        #238636;
+  --green-light:  #3fb950;
+  --green-bg:     rgba(35,134,54,.18);
+
+  --yellow:       #9e6a03;
+  --yellow-light: #d29922;
+  --yellow-bg:    rgba(158,106,3,.18);
+
+  --red:          #da3633;
+  --red-light:    #f85149;
+  --red-bg:       rgba(218,54,51,.18);
+
+  --blue:         #1f6feb;
+  --blue-light:   #58a6ff;
+  --blue-bg:      rgba(31,111,235,.18);
+
+  --radius:       8px;
+  --radius-lg:    12px;
+  --font:         -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono:    "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 24px 16px 48px;
+}
+
+a { color: var(--blue-light); text-decoration: none; }
+.mono { font-family: var(--font-mono); }
+
+.container { max-width: 1200px; margin: 0 auto; }
+
+/* ── Dashboard header ─────────────────────────────────────────────── */
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+}
+.dash-title    { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.dash-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.dash-meta     { text-align: right; font-size: 12px; color: var(--text-faint); }
+
+/* ── Single-ticker header ─────────────────────────────────────────── */
+.ticker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+}
+.header-left   { display: flex; flex-direction: column; gap: 4px; }
+.ticker-symbol { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; }
+.company-name  { font-size: 15px; color: var(--text-muted); }
+.sector-tag    {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.header-right  { text-align: right; }
+.price-large   { font-size: 28px; font-weight: 600; }
+.change-pos    { color: var(--green-light);  font-size: 14px; margin-left: 6px; }
+.change-neg    { color: var(--red-light);    font-size: 14px; margin-left: 6px; }
+.change-flat   { color: var(--text-muted);   font-size: 14px; margin-left: 6px; }
+.header-meta   { font-size: 12px; color: var(--text-faint); margin-top: 6px; }
+
+/* ── Regime banner ────────────────────────────────────────────────── */
+.regime-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.regime-banner.risk-on      { background: var(--green-bg);  border-color: var(--green);  }
+.regime-banner.neutral      { background: var(--blue-bg);   border-color: var(--blue);   }
+.regime-banner.risk-off     { background: var(--yellow-bg); border-color: var(--yellow); }
+.regime-banner.deleveraging { background: var(--red-bg);    border-color: var(--red);    }
+
+.regime-left  { display: flex; align-items: center; gap: 10px; }
+.regime-icon  { font-size: 20px; }
+.regime-label { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
+.regime-sub   { color: var(--text-muted); font-size: 12px; }
+.veto-pill    {
+  background: var(--red-bg);
+  color: var(--red-light);
+  border: 1px solid var(--red);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+.weight-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.weight-pill  {
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.weight-pill.elevated { border-color: var(--green);  color: var(--green-light); }
+.weight-pill.reduced  { border-color: var(--red);    color: var(--red-light);   }
+
+/* ── Summary bar ──────────────────────────────────────────────────── */
+.summary-bar {
+  display: flex;
+  gap: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.summary-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 8px;
+  border-right: 1px solid var(--border-light);
+  gap: 2px;
+}
+.summary-stat:last-child { border-right: none; }
+.summary-num   { font-size: 22px; font-weight: 700; line-height: 1; }
+.summary-label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; }
+.summary-num.buy   { color: var(--green-light); }
+.summary-num.watch { color: var(--yellow-light); }
+.summary-num.avoid { color: var(--red-light); }
+
+/* ── Filter bar ───────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+}
+.filter-group { display: flex; gap: 4px; }
+.filter-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.filter-btn:hover { background: var(--bg-card2); color: var(--text); }
+.filter-btn.active-all   { background: var(--bg-card2); color: var(--text); border-color: var(--border); }
+.filter-btn.active-buy   { background: var(--green-bg); color: var(--green-light); border-color: var(--green); }
+.filter-btn.active-watch { background: var(--yellow-bg); color: var(--yellow-light); border-color: var(--yellow); }
+.filter-btn.active-avoid { background: var(--red-bg); color: var(--red-light); border-color: var(--red); }
+
+.filter-select {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card2);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+.filter-search {
+  flex: 1;
+  min-width: 140px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card2);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+.filter-search:focus { border-color: var(--blue); }
+.filter-search::placeholder { color: var(--text-faint); }
+.showing-count { font-size: 12px; color: var(--text-muted); padding: 4px 2px; }
+
+/* ── Results table ────────────────────────────────────────────────── */
+.results-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+.results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.results-table thead { position: sticky; top: 0; z-index: 10; }
+.results-table th {
+  background: var(--bg-card);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  border-bottom: 2px solid var(--border);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.results-table th:hover { color: var(--text-muted); }
+.results-table th.sort-desc::after { content: " ▼"; color: var(--blue-light); }
+.results-table th.sort-asc::after  { content: " ▲"; color: var(--blue-light); }
+.results-table th.no-sort { cursor: default; }
+
+.results-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+.stock-row { cursor: pointer; transition: background .12s; }
+.stock-row:hover   { background: var(--bg-card2); }
+.stock-row.expanded { background: var(--bg-card2); }
+.stock-row.expanded .expand-ind::after { content: "▼"; color: var(--blue-light); }
+.expand-ind::after { content: "▶"; color: var(--text-faint); font-size: 11px; }
+
+.rank-cell { color: var(--text-faint); font-size: 12px; width: 32px; }
+.ticker-cell { font-weight: 600; }
+.ticker-name { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+
+/* Mini score bar */
+.mini-score      { display: flex; align-items: center; gap: 6px; }
+.mini-score-num  { font-family: var(--font-mono); font-size: 13px; min-width: 36px; }
+.mini-score-bar  { width: 52px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.mini-score-fill { height: 100%; border-radius: 3px; }
+.mini-score-fill.buy   { background: var(--green-light); }
+.mini-score-fill.watch { background: var(--yellow-light); }
+.mini-score-fill.avoid { background: var(--red-light); }
+
+/* Signal dot */
+.sdot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sdot.buy   { background: var(--green-light); }
+.sdot.watch { background: var(--yellow-light); }
+.sdot.avoid { background: var(--red-light); }
+.sdot.na    { background: var(--border); }
+
+/* ── Detail row ───────────────────────────────────────────────────── */
+.detail-row td {
+  padding: 0;
+  border-bottom: 2px solid var(--border);
+}
+.detail-inner {
+  padding: 20px 20px 24px;
+  background: var(--bg);
+  border-top: 1px solid var(--border-light);
+}
+.detail-loading { padding: 20px; color: var(--text-muted); font-size: 12px; }
+
+/* ── Agent cards ──────────────────────────────────────────────────── */
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+}
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.agent-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.agent-card.signal-buy   { border-top: 3px solid var(--green);  }
+.agent-card.signal-watch { border-top: 3px solid var(--yellow); }
+.agent-card.signal-avoid { border-top: 3px solid var(--red);    }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.agent-name  { font-weight: 600; font-size: 14px; }
+.agent-tag   { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+.badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge-buy   { background: var(--green);  color: #fff; }
+.badge-watch { background: var(--yellow); color: #fff; }
+.badge-avoid { background: var(--red);    color: #fff; }
+.confidence-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.confidence-track {
+  flex: 1; height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.confidence-fill   { height: 100%; border-radius: 3px; background: var(--blue-light); }
+.confidence-val    { font-size: 11px; color: var(--text-muted); min-width: 28px; text-align: right; }
+.reasoning         { font-size: 13px; color: var(--text-muted); line-height: 1.55; flex: 1; }
+.dim-scores        { border-top: 1px solid var(--border-light); padding-top: 10px; }
+.dim-row           { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; font-size: 11px; }
+.dim-label         { color: var(--text-faint); width: 110px; flex-shrink: 0; }
+.dim-track         {
+  flex: 1; height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.dim-fill-pos { position: absolute; height: 100%; left: 50%;  border-radius: 3px; background: var(--green-light); }
+.dim-fill-neg { position: absolute; height: 100%; right: 50%; border-radius: 3px; background: var(--red-light);   }
+.dim-val      { color: var(--text-muted); width: 38px; text-align: right; flex-shrink: 0; }
+
+/* ── Simons quant bar ─────────────────────────────────────────────── */
+.quant-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; }
+.quant-indicators { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
+.indicator { background: var(--bg-card2); border: 1px solid var(--border-light); border-radius: 6px; padding: 8px 12px; }
+.ind-label { font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.5px; }
+.ind-value { font-size: 15px; font-weight: 600; margin: 2px 0; }
+.ind-note  { font-size: 10px; color: var(--text-muted); }
+.ind-value.bullish { color: var(--green-light); }
+.ind-value.bearish { color: var(--red-light);   }
+.ind-value.neutral { color: var(--text-muted);  }
+
+/* ── Verdict / score bar ──────────────────────────────────────────── */
+.verdict { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px; }
+.verdict-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+.verdict-rec { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; }
+.verdict-rec.BUY   { color: var(--green-light); }
+.verdict-rec.WATCH { color: var(--yellow-light); }
+.verdict-rec.AVOID { color: var(--red-light);   }
+.score-display  { text-align: right; }
+.score-number   { font-size: 28px; font-weight: 600; font-family: var(--font-mono); }
+.score-label    { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+.score-bar-wrap { margin-bottom: 20px; }
+.score-track    { height: 18px; border-radius: 9px; overflow: hidden; display: flex; position: relative; border: 1px solid var(--border); }
+.score-zone-avoid { flex: 50;  background: rgba(218,54,51,.25);  }
+.score-zone-watch { flex: 20;  background: rgba(158,106,3,.25);  }
+.score-zone-buy   { flex: 30;  background: rgba(35,134,54,.25);  }
+.score-zone-label { display: flex; font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+.score-zone-label span { flex: 1; }
+.score-zone-label span:nth-child(2) { flex: 0.4; }
+.score-needle-wrap { position: relative; height: 0; }
+.score-needle { position: absolute; top: -22px; width: 3px; height: 22px; background: #fff; border-radius: 2px; transform: translateX(-50%); box-shadow: 0 0 6px rgba(255,255,255,.6); }
+.consensus-row   { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.consensus-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.consensus-label { font-size: 11px; color: var(--text-faint); }
+.consensus-agent { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.consensus-agent.buy   { background: var(--green-bg);  color: var(--green-light);  border: 1px solid var(--green);  }
+.consensus-agent.watch { background: var(--yellow-bg); color: var(--yellow-light); border: 1px solid var(--yellow); }
+.consensus-agent.avoid { background: var(--red-bg);    color: var(--red-light);    border: 1px solid var(--red);    }
+
+/* ── Footer ───────────────────────────────────────────────────────── */
+footer { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .ticker-header, .dash-header { flex-direction: column; }
+  .header-right, .dash-meta    { text-align: left; }
+  .agents-grid                 { grid-template-columns: 1fr; }
+  .quant-indicators            { grid-template-columns: repeat(2, 1fr); }
+  .summary-bar                 { flex-wrap: wrap; }
+  .summary-stat                { flex: 1 1 40%; }
+  .filter-bar                  { flex-direction: column; align-items: stretch; }
+  .filter-group                { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<header class="dash-header">
+  <div>
+    <div class="dash-title">MARKET SIGNUM</div>
+    <div class="dash-subtitle">NYSE Batch Scan · 5 stocks analyzed · ⚖️ NEUTRAL regime</div>
+  </div>
+  <div class="dash-meta">
+    Generated: 2026-03-10 14:19<br>
+    Data via yfinance · Educational use only
+  </div>
+</header>
+
+
+<div class="regime-banner neutral" style="margin-bottom:12px">
+  <div class="regime-left">
+    <span class="regime-icon">⚖️</span>
+    <div>
+      <div><span class="regime-label">NEUTRAL REGIME</span></div>
+      <div class="regime-sub">Dalio macro: <strong>watch</strong>
+        · The machine is balanced — no strong directional bias in the current environment. VIX 23.0 — elevated…</div>
+    </div>
+  </div>
+  <div class="weight-pills">
+    <span class="weight-pill ">Graham 15%</span><span class="weight-pill ">Buffett 25%</span><span class="weight-pill ">Dalio 20%</span><span class="weight-pill ">Lynch 20%</span><span class="weight-pill ">Simons 20%</span>
+  </div>
+</div>
+
+<!-- Summary bar -->
+<div class="summary-bar">
+  <div class="summary-stat">
+    <div class="summary-num">5</div>
+    <div class="summary-label">Analyzed</div>
+  </div>
+  <div class="summary-stat">
+    <div class="summary-num buy">0</div>
+    <div class="summary-label">🟢 BUY</div>
+  </div>
+  <div class="summary-stat">
+    <div class="summary-num watch">3</div>
+    <div class="summary-label">🟡 WATCH</div>
+  </div>
+  <div class="summary-stat">
+    <div class="summary-num avoid">2</div>
+    <div class="summary-label">🔴 AVOID</div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <button class="filter-btn active-all" data-rec="all"   onclick="setRecFilter('all')">All</button>
+    <button class="filter-btn"            data-rec="BUY"   onclick="setRecFilter('BUY')">🟢 BUY</button>
+    <button class="filter-btn"            data-rec="WATCH" onclick="setRecFilter('WATCH')">🟡 WATCH</button>
+    <button class="filter-btn"            data-rec="AVOID" onclick="setRecFilter('AVOID')">🔴 AVOID</button>
+  </div>
+  <select class="filter-select" onchange="setSectorFilter(this.value)">
+    <option value="all">All Sectors</option>
+    <option value="Communication Services">Communication Services</option>
+<option value="Energy">Energy</option>
+<option value="Financial Services">Financial Services</option>
+<option value="Technology">Technology</option>
+  </select>
+  <input class="filter-search" type="text" placeholder="Search ticker or company…" oninput="setSearch(this.value)">
+</div>
+<div class="showing-count" id="showing-count">Showing 5 of 5 stocks</div>
+
+<!-- Results table -->
+<div class="results-wrap">
+<table class="results-table">
+  <thead>
+    <tr>
+      <th class="no-sort">#</th>
+      <th data-col="ticker"  onclick="sortBy('ticker')">Ticker</th>
+      <th data-col="score"   onclick="sortBy('score')">Score</th>
+      <th data-col="rec"     onclick="sortBy('rec')">Rec</th>
+      <th data-col="g"       onclick="sortBy('g')"  title="Graham">G</th>
+      <th data-col="bu"      onclick="sortBy('bu')" title="Buffett">Bu</th>
+      <th data-col="ly"      onclick="sortBy('ly')" title="Lynch">Ly</th>
+      <th data-col="si"      onclick="sortBy('si')" title="Simons">Si</th>
+      <th class="no-sort"    title="Dalio Regime">Regime</th>
+      <th data-col="sector"  onclick="sortBy('sector')">Sector</th>
+      <th data-col="price"   onclick="sortBy('price')">Price</th>
+      <th data-col="mktcap"  onclick="sortBy('mktcap')">Mkt Cap</th>
+      <th class="no-sort"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="stock-row"
+  data-ticker="MSFT"
+  data-score="0.5723"
+  data-rec="WATCH"
+  data-sector="Technology"
+  data-price="404.53"
+  data-mktcap="3006582489088"
+  data-name="Microsoft Corporation"
+  data-graham="avoid"
+  data-buffett="buy"
+  data-lynch="watch"
+  data-simons="watch"
+  onclick="toggleDetail('MSFT')"
+>
+  <td class="rank-cell">1</td>
+  <td class="ticker-cell">MSFT<br><span class="ticker-name">Microsoft Corporation</span></td>
+  <td><div class="mini-score"><span class="mini-score-num">0.572</span><div class="mini-score-bar"><div class="mini-score-fill watch" style="width:57.2%"></div></div></div></td>
+  <td><span class="badge badge-watch">WATCH</span></td>
+  <td><span class="sdot avoid" title="AVOID"></span></td>
+  <td><span class="sdot buy" title="BUY"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span title="NEUTRAL">⚖️</span></td>
+  <td>Technology</td>
+  <td class="mono">$404.53</td>
+  <td class="mono">3.0T</td>
+  <td><span class="expand-ind"></span></td>
+</tr>
+<tr class="detail-row" id="dr-MSFT" style="display:none">
+  <td colspan="13">
+    <div class="detail-inner" id="di-MSFT">
+      <div class="detail-loading">Loading…</div>
+    </div>
+  </td>
+</tr>
+<tr class="stock-row"
+  data-ticker="GOOGL"
+  data-score="0.5720"
+  data-rec="WATCH"
+  data-sector="Communication Services"
+  data-price="307.61"
+  data-mktcap="3721494528000"
+  data-name="Alphabet Inc."
+  data-graham="avoid"
+  data-buffett="buy"
+  data-lynch="watch"
+  data-simons="watch"
+  onclick="toggleDetail('GOOGL')"
+>
+  <td class="rank-cell">2</td>
+  <td class="ticker-cell">GOOGL<br><span class="ticker-name">Alphabet Inc.</span></td>
+  <td><div class="mini-score"><span class="mini-score-num">0.572</span><div class="mini-score-bar"><div class="mini-score-fill watch" style="width:57.2%"></div></div></div></td>
+  <td><span class="badge badge-watch">WATCH</span></td>
+  <td><span class="sdot avoid" title="AVOID"></span></td>
+  <td><span class="sdot buy" title="BUY"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span title="NEUTRAL">⚖️</span></td>
+  <td>Communication Services</td>
+  <td class="mono">$307.61</td>
+  <td class="mono">3.7T</td>
+  <td><span class="expand-ind"></span></td>
+</tr>
+<tr class="detail-row" id="dr-GOOGL" style="display:none">
+  <td colspan="13">
+    <div class="detail-inner" id="di-GOOGL">
+      <div class="detail-loading">Loading…</div>
+    </div>
+  </td>
+</tr>
+<tr class="stock-row"
+  data-ticker="AAPL"
+  data-score="0.5630"
+  data-rec="WATCH"
+  data-sector="Technology"
+  data-price="262.245"
+  data-mktcap="3854457372672"
+  data-name="Apple Inc."
+  data-graham="avoid"
+  data-buffett="buy"
+  data-lynch="watch"
+  data-simons="watch"
+  onclick="toggleDetail('AAPL')"
+>
+  <td class="rank-cell">3</td>
+  <td class="ticker-cell">AAPL<br><span class="ticker-name">Apple Inc.</span></td>
+  <td><div class="mini-score"><span class="mini-score-num">0.563</span><div class="mini-score-bar"><div class="mini-score-fill watch" style="width:56.3%"></div></div></div></td>
+  <td><span class="badge badge-watch">WATCH</span></td>
+  <td><span class="sdot avoid" title="AVOID"></span></td>
+  <td><span class="sdot buy" title="BUY"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span title="NEUTRAL">⚖️</span></td>
+  <td>Technology</td>
+  <td class="mono">$262.25</td>
+  <td class="mono">3.9T</td>
+  <td><span class="expand-ind"></span></td>
+</tr>
+<tr class="detail-row" id="dr-AAPL" style="display:none">
+  <td colspan="13">
+    <div class="detail-inner" id="di-AAPL">
+      <div class="detail-loading">Loading…</div>
+    </div>
+  </td>
+</tr>
+<tr class="stock-row"
+  data-ticker="XOM"
+  data-score="0.3299"
+  data-rec="AVOID"
+  data-sector="Energy"
+  data-price="148.9"
+  data-mktcap="620514443264"
+  data-name="Exxon Mobil Corporation"
+  data-graham="avoid"
+  data-buffett="watch"
+  data-lynch="avoid"
+  data-simons="watch"
+  onclick="toggleDetail('XOM')"
+>
+  <td class="rank-cell">4</td>
+  <td class="ticker-cell">XOM<br><span class="ticker-name">Exxon Mobil Corporatio…</span></td>
+  <td><div class="mini-score"><span class="mini-score-num">0.330</span><div class="mini-score-bar"><div class="mini-score-fill avoid" style="width:33.0%"></div></div></div></td>
+  <td><span class="badge badge-avoid">AVOID</span></td>
+  <td><span class="sdot avoid" title="AVOID"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span class="sdot avoid" title="AVOID"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span title="NEUTRAL">⚖️</span></td>
+  <td>Energy</td>
+  <td class="mono">$148.90</td>
+  <td class="mono">620.5B</td>
+  <td><span class="expand-ind"></span></td>
+</tr>
+<tr class="detail-row" id="dr-XOM" style="display:none">
+  <td colspan="13">
+    <div class="detail-inner" id="di-XOM">
+      <div class="detail-loading">Loading…</div>
+    </div>
+  </td>
+</tr>
+<tr class="stock-row"
+  data-ticker="JPM"
+  data-score="0.3017"
+  data-rec="AVOID"
+  data-sector="Financial Services"
+  data-price="289.94"
+  data-mktcap="781923909632"
+  data-name="JPMorgan Chase &amp; Co."
+  data-graham="watch"
+  data-buffett="watch"
+  data-lynch="avoid"
+  data-simons="avoid"
+  onclick="toggleDetail('JPM')"
+>
+  <td class="rank-cell">5</td>
+  <td class="ticker-cell">JPM<br><span class="ticker-name">JPMorgan Chase &amp; Co.</span></td>
+  <td><div class="mini-score"><span class="mini-score-num">0.302</span><div class="mini-score-bar"><div class="mini-score-fill avoid" style="width:30.2%"></div></div></div></td>
+  <td><span class="badge badge-avoid">AVOID</span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span class="sdot watch" title="WATCH"></span></td>
+  <td><span class="sdot avoid" title="AVOID"></span></td>
+  <td><span class="sdot avoid" title="AVOID"></span></td>
+  <td><span title="NEUTRAL">⚖️</span></td>
+  <td>Financial Services</td>
+  <td class="mono">$289.94</td>
+  <td class="mono">781.9B</td>
+  <td><span class="expand-ind"></span></td>
+</tr>
+<tr class="detail-row" id="dr-JPM" style="display:none">
+  <td colspan="13">
+    <div class="detail-inner" id="di-JPM">
+      <div class="detail-loading">Loading…</div>
+    </div>
+  </td>
+</tr>
+  </tbody>
+</table>
+</div>
+
+<footer>
+  MARKET SIGNUM · Generated 2026-03-10 14:19 · 5 stocks · Data via yfinance · Educational use only — not investment advice
+</footer>
+</div>
+
+<script>
+const DETAIL_DATA = {"MSFT":{"name":"Microsoft Corporation","sector":"Technology","price":404.53,"regime_flag":"neutral","agents":{"dalio":{"signal":"watch","confidence":0.57,"reasoning":"The machine is balanced — no strong directional bias in the current environment. VIX 23.0 — elevated uncertainty 10Y yield -1.7% in 1m — stable","dimension_scores":{}},"graham":{"signal":"avoid","confidence":0.67,"reasoning":"This stock fails Graham's valuation screen. The price provides insufficient margin of safety. P/E of 25.33 is elevated for a value investor; P/B of 7.69 trades at a significant premium to book; D/E of 31.539 carries more leverage than Graham prefers.","dimension_scores":{"valuation":-0.74,"balance_sheet":-0.55,"earnings_power":0.35}},"buffett":{"signal":"buy","confidence":0.75,"reasoning":"This business demonstrates the quality characteristics I look for in a long-term holding. ROE of 34.4% demonstrates strong business economics; gross margin of 68.6% suggests a durable moat.","dimension_scores":{"business_quality":0.81,"moat_strength":0.68,"cash_generation":0.3,"fair_value":0.0}},"lynch":{"signal":"watch","confidence":0.44,"reasoning":"Some interesting growth characteristics here but not enough to pull the trigger yet. earnings growing at 59.8% is outside my sweet spot.","dimension_scores":{"growth":0.6,"peg_value":0.0,"discovery":0.0,"momentum":-0.5}},"simons":{"signal":"watch","confidence":0.56,"reasoning":"Signals are mixed — insufficient statistical consensus for a directional trade. RSI at 54.5 signals caution; MACD shows a bullish crossover; death cross on the 50/200MA.","dimension_scores":{"momentum":-0.53,"oscillators":0.385,"trend_structure":-0.405,"volume_bb":0.0}}},"technicals":{"rsi_14":54.46,"macd":{"macd":-6.6532,"signal":-10.4358,"histogram":3.7825,"crossover":"bullish"},"bollinger_bands":{"upper":414.96,"middle":400.86,"lower":386.76,"position":0.63},"momentum":{"30d":-15.63,"60d":-16.14,"90d":-24.99},"ma_cross":"death","price_vs_ma50":-6.75,"price_vs_ma200":-16.11,"volume_ratio_20d":0.59,"52w_pct_from_high":-26.75},"score":0.5723,"recommendation":"WATCH","consensus":{"buy":["buffett"],"watch":["dalio","lynch","simons"],"avoid":["graham"]},"veto":false,"contributions":{"dalio":{"effective_weight":0.1894},"graham":{"effective_weight":0.1669},"buffett":{"effective_weight":0.3115},"lynch":{"effective_weight":0.1462},"simons":{"effective_weight":0.186}}},"GOOGL":{"name":"Alphabet Inc.","sector":"Communication Services","price":307.61,"regime_flag":"neutral","agents":{"dalio":{"signal":"watch","confidence":0.57,"reasoning":"The machine is balanced — no strong directional bias in the current environment. VIX 23.0 — elevated uncertainty 10Y yield -1.7% in 1m — stable","dimension_scores":{}},"graham":{"signal":"avoid","confidence":0.65,"reasoning":"This stock fails Graham's valuation screen. The price provides insufficient margin of safety. P/E of 28.46 is elevated for a value investor; P/B of 8.96 trades at a significant premium to book; D/E of 16.133 carries more leverage than Graham prefers.","dimension_scores":{"valuation":-0.74,"balance_sheet":-0.4,"earnings_power":0.35}},"buffett":{"signal":"buy","confidence":0.73,"reasoning":"This business demonstrates the quality characteristics I look for in a long-term holding. ROE of 35.7% demonstrates strong business economics; gross margin of 59.6% suggests a durable moat.","dimension_scores":{"business_quality":0.81,"moat_strength":0.68,"cash_generation":0.1,"fair_value":0.0}},"lynch":{"signal":"watch","confidence":0.45,"reasoning":"Some interesting growth characteristics here but not enough to pull the trigger yet. earnings growing at 31.1% is outside my sweet spot.","dimension_scores":{"growth":0.6,"peg_value":0.0,"discovery":0.0,"momentum":-0.3}},"simons":{"signal":"watch","confidence":0.53,"reasoning":"Signals are mixed — insufficient statistical consensus for a directional trade. RSI at 54.4 signals caution; MACD shows a bullish crossover; golden cross on the 50/200MA.","dimension_scores":{"momentum":-0.17,"oscillators":0.275,"trend_structure":0.17,"volume_bb":0.0}}},"technicals":{"rsi_14":54.4,"macd":{"macd":-4.5475,"signal":-4.6194,"histogram":0.0719,"crossover":"bullish"},"bollinger_bands":{"upper":317.49,"middle":307.23,"lower":296.97,"position":0.519},"momentum":{"30d":-7.99,"60d":-1.47,"90d":12.19},"ma_cross":"golden","price_vs_ma50":-3.65,"price_vs_ma200":21.05,"volume_ratio_20d":0.45,"52w_pct_from_high":-11.8},"score":0.572,"recommendation":"WATCH","consensus":{"buy":["buffett"],"watch":["dalio","lynch","simons"],"avoid":["graham"]},"veto":false,"contributions":{"dalio":{"effective_weight":0.1932},"graham":{"effective_weight":0.1653},"buffett":{"effective_weight":0.3093},"lynch":{"effective_weight":0.1525},"simons":{"effective_weight":0.1797}}},"AAPL":{"name":"Apple Inc.","sector":"Technology","price":262.245,"regime_flag":"neutral","agents":{"dalio":{"signal":"watch","confidence":0.57,"reasoning":"The machine is balanced — no strong directional bias in the current environment. VIX 23.0 — elevated uncertainty 10Y yield -1.7% in 1m — stable","dimension_scores":{}},"graham":{"signal":"avoid","confidence":0.7,"reasoning":"This stock fails Graham's valuation screen. The price provides insufficient margin of safety. P/E of 33.2 is elevated for a value investor; P/B of 43.72 trades at a significant premium to book; D/E of 102.63 carries more leverage than Graham prefers.","dimension_scores":{"valuation":-0.74,"balance_sheet":-0.75,"earnings_power":0.35}},"buffett":{"signal":"buy","confidence":0.72,"reasoning":"This business demonstrates the quality characteristics I look for in a long-term holding. ROE of 152.0% demonstrates strong business economics; gross margin of 47.3% suggests a durable moat.","dimension_scores":{"business_quality":0.81,"moat_strength":0.5,"cash_generation":0.3,"fair_value":0.0}},"lynch":{"signal":"watch","confidence":0.44,"reasoning":"Some interesting growth characteristics here but not enough to pull the trigger yet. earnings growing at 18.3% fits my 15-30% profile.","dimension_scores":{"growth":0.36,"peg_value":0.0,"discovery":0.0,"momentum":0.1}},"simons":{"signal":"watch","confidence":0.54,"reasoning":"Signals are mixed — insufficient statistical consensus for a directional trade. RSI at 47.4 signals caution; MACD shows a bearish crossover; golden cross on the 50/200MA.","dimension_scores":{"momentum":-0.1,"oscillators":-0.385,"trend_structure":0.215,"volume_bb":-0.05}}},"technicals":{"rsi_14":47.37,"macd":{"macd":-1.1493,"signal":-0.2439,"histogram":-0.9055,"crossover":"bearish"},"bollinger_bands":{"upper":276.5,"middle":265.03,"lower":253.56,"position":0.379},"momentum":{"30d":1.63,"60d":-5.59,"90d":-2.58},"ma_cross":"golden","price_vs_ma50":-0.54,"price_vs_ma200":7.33,"volume_ratio_20d":0.33,"52w_pct_from_high":-9.05},"score":0.563,"recommendation":"WATCH","consensus":{"buy":["buffett"],"watch":["dalio","lynch","simons"],"avoid":["graham"]},"veto":false,"contributions":{"dalio":{"effective_weight":0.1916},"graham":{"effective_weight":0.1765},"buffett":{"effective_weight":0.3025},"lynch":{"effective_weight":0.1479},"simons":{"effective_weight":0.1815}}},"XOM":{"name":"Exxon Mobil Corporation","sector":"Energy","price":148.9,"regime_flag":"neutral","agents":{"dalio":{"signal":"watch","confidence":0.57,"reasoning":"The machine is balanced — no strong directional bias in the current environment. VIX 23.0 — elevated uncertainty 10Y yield -1.7% in 1m — stable","dimension_scores":{}},"graham":{"signal":"avoid","confidence":0.62,"reasoning":"This stock fails Graham's valuation screen. The price provides insufficient margin of safety. P/E of 22.26 is elevated for a value investor; P/B of 2.4 trades at a significant premium to book; D/E of 18.936 carries more leverage than Graham prefers.","dimension_scores":{"valuation":-0.36,"balance_sheet":-0.55,"earnings_power":0.25}},"buffett":{"signal":"watch","confidence":0.54,"reasoning":"There are elements of quality here but the picture is incomplete or the price is not yet compelling. ROE of 11.1% indicates below-par capital efficiency; gross margin of 31.1% indicates limited pricing power.","dimension_scores":{"business_quality":-0.055,"moat_strength":0.16,"cash_generation":0.3,"fair_value":0.2}},"lynch":{"signal":"avoid","confidence":0.45,"reasoning":"The growth profile doesn't meet my criteria — I'd pass on this one. earnings growing at -11.0% is outside my sweet spot.","dimension_scores":{"growth":-0.62,"peg_value":0.0,"discovery":0.0,"momentum":0.3}},"simons":{"signal":"watch","confidence":0.53,"reasoning":"Signals are mixed — insufficient statistical consensus for a directional trade. RSI at 46.2 signals caution; MACD shows a bearish crossover; golden cross on the 50/200MA.","dimension_scores":{"momentum":0.38,"oscillators":-0.385,"trend_structure":0.345,"volume_bb":-0.15}}},"technicals":{"rsi_14":46.21,"macd":{"macd":3.0545,"signal":4.0207,"histogram":-0.9662,"crossover":"bearish"},"bollinger_bands":{"upper":154.4,"middle":150.3,"lower":146.2,"position":0.33},"momentum":{"30d":9.55,"60d":25.39,"90d":29.84},"ma_cross":"golden","price_vs_ma50":7.35,"price_vs_ma200":26.77,"volume_ratio_20d":0.63,"52w_pct_from_high":-6.71},"score":0.3299,"recommendation":"AVOID","consensus":{"buy":[],"watch":["dalio","buffett","simons"],"avoid":["graham","lynch"]},"veto":false,"contributions":{"dalio":{"effective_weight":0.2119},"graham":{"effective_weight":0.1729},"buffett":{"effective_weight":0.2509},"lynch":{"effective_weight":0.1673},"simons":{"effective_weight":0.197}}},"JPM":{"name":"JPMorgan Chase & Co.","sector":"Financial Services","price":289.94,"regime_flag":"neutral","agents":{"dalio":{"signal":"watch","confidence":0.57,"reasoning":"The machine is balanced — no strong directional bias in the current environment. VIX 23.0 — elevated uncertainty 10Y yield -1.7% in 1m — stable","dimension_scores":{}},"graham":{"signal":"watch","confidence":0.49,"reasoning":"This stock shows some value characteristics but does not clear Graham's full margin-of-safety threshold. P/E of 14.47 is acceptable; P/B of 2.28 trades at a significant premium to book.","dimension_scores":{"valuation":0.18,"balance_sheet":0.0,"earnings_power":0.35}},"buffett":{"signal":"watch","confidence":0.54,"reasoning":"There are elements of quality here but the picture is incomplete or the price is not yet compelling. ROE of 16.1% demonstrates strong business economics; gross margin of 0.0% indicates limited pricing power.","dimension_scores":{"business_quality":0.48,"moat_strength":-0.1,"cash_generation":0.0,"fair_value":0.4}},"lynch":{"signal":"avoid","confidence":0.45,"reasoning":"The growth profile doesn't meet my criteria — I'd pass on this one. earnings growing at -3.6% is outside my sweet spot.","dimension_scores":{"growth":-0.46,"peg_value":0.0,"discovery":0.0,"momentum":-0.1}},"simons":{"signal":"avoid","confidence":0.61,"reasoning":"The pattern data is negative across multiple windows. Statistical evidence favors downside. RSI at 30.5 signals caution; MACD shows a bearish crossover; golden cross on the 50/200MA.","dimension_scores":{"momentum":-0.25,"oscillators":-0.61,"trend_structure":0.07,"volume_bb":-0.15}}},"technicals":{"rsi_14":30.5,"macd":{"macd":-5.0929,"signal":-3.7827,"histogram":-1.3101,"crossover":"bearish"},"bollinger_bands":{"upper":317.18,"middle":301.69,"lower":286.2,"position":0.121},"momentum":{"30d":-3.45,"60d":-8.23,"90d":-4.67},"ma_cross":"golden","price_vs_ma50":-6.37,"price_vs_ma200":-2.88,"volume_ratio_20d":0.53,"52w_pct_from_high":-13.67},"score":0.3017,"recommendation":"AVOID","consensus":{"buy":[],"watch":["dalio","graham","buffett"],"avoid":["lynch","simons"]},"veto":false,"contributions":{"dalio":{"effective_weight":0.2133},"graham":{"effective_weight":0.1375},"buffett":{"effective_weight":0.2526},"lynch":{"effective_weight":0.1684},"simons":{"effective_weight":0.2283}}}};
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '—';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function fmtCap(v) {
+  if (!v) return '—';
+  v = Number(v);
+  if (v >= 1e12) return (v/1e12).toFixed(1) + 'T';
+  if (v >= 1e9)  return (v/1e9).toFixed(1) + 'B';
+  if (v >= 1e6)  return (v/1e6).toFixed(0) + 'M';
+  return v.toLocaleString();
+}
+
+// ── Sort + filter state ───────────────────────────────────────────────────
+let sortCol = 'score', sortDir = -1;
+let filterRec = 'all', filterSector = 'all', filterSearch = '';
+
+function sortBy(col) {
+  if (sortCol === col) { sortDir = -sortDir; }
+  else { sortCol = col; sortDir = (['ticker','sector'].includes(col)) ? 1 : -1; }
+  applyView();
+}
+
+function setRecFilter(val) {
+  filterRec = val;
+  document.querySelectorAll('.filter-btn[data-rec]').forEach(b => {
+    b.className = 'filter-btn' + (b.dataset.rec === val ? ' active-' + (val === 'all' ? 'all' : val.toLowerCase()) : '');
+  });
+  applyView();
+}
+
+function setSectorFilter(val) {
+  filterSector = val;
+  applyView();
+}
+
+function setSearch(val) {
+  filterSearch = val.toLowerCase().trim();
+  applyView();
+}
+
+// ── Apply current view (sort + filter) ───────────────────────────────────
+function applyView() {
+  const allRows = Array.from(document.querySelectorAll('.stock-row'));
+  const expandedTicker = document.querySelector('.stock-row.expanded')?.dataset.ticker;
+
+  // 1. Filter
+  const visible = allRows.filter(r => {
+    const rec    = r.dataset.rec;
+    const sector = r.dataset.sector;
+    const ticker = r.dataset.ticker.toLowerCase();
+    const name   = (r.dataset.name || '').toLowerCase();
+    if (filterRec !== 'all' && rec !== filterRec) return false;
+    if (filterSector !== 'all' && sector !== filterSector) return false;
+    if (filterSearch && !ticker.includes(filterSearch) && !name.includes(filterSearch)) return false;
+    return true;
+  });
+
+  // 2. Sort
+  const sigNum = {buy: 2, watch: 1, avoid: 0};
+  const getVal = r => {
+    switch (sortCol) {
+      case 'score':   return parseFloat(r.dataset.score);
+      case 'ticker':  return r.dataset.ticker;
+      case 'rec':     return sigNum[r.dataset.rec.toLowerCase()] ?? 1;
+      case 'sector':  return r.dataset.sector;
+      case 'price':   return parseFloat(r.dataset.price) || 0;
+      case 'mktcap':  return parseFloat(r.dataset.mktcap) || 0;
+      case 'g':       return sigNum[r.dataset.graham.toLowerCase()] ?? 1;
+      case 'bu':      return sigNum[r.dataset.buffett.toLowerCase()] ?? 1;
+      case 'ly':      return sigNum[r.dataset.lynch.toLowerCase()] ?? 1;
+      case 'si':      return sigNum[r.dataset.simons.toLowerCase()] ?? 1;
+      default:        return 0;
+    }
+  };
+  const strCols = new Set(['ticker','sector']);
+  visible.sort((a, b) => {
+    const av = getVal(a), bv = getVal(b);
+    const cmp = strCols.has(sortCol) ? String(av).localeCompare(String(bv)) : (Number(av) - Number(bv));
+    return cmp * sortDir;
+  });
+
+  // 3. Hide all summary + detail rows
+  allRows.forEach(r => { r.style.display = 'none'; });
+  document.querySelectorAll('.detail-row').forEach(r => { r.style.display = 'none'; });
+
+  // 4. Show sorted/filtered rows in order
+  const tbody = document.querySelector('.results-table tbody');
+  visible.forEach((row, i) => {
+    row.style.display = '';
+    row.querySelector('.rank-cell').textContent = i + 1;
+    tbody.appendChild(row);
+    const dr = document.getElementById('dr-' + row.dataset.ticker);
+    if (dr) tbody.appendChild(dr);
+  });
+
+  // 5. Restore expanded row if it's still visible
+  if (expandedTicker && visible.some(r => r.dataset.ticker === expandedTicker)) {
+    const dr = document.getElementById('dr-' + expandedTicker);
+    const sr = document.querySelector(`.stock-row[data-ticker="${expandedTicker}"]`);
+    if (dr) dr.style.display = '';
+    if (sr) sr.classList.add('expanded');
+  }
+
+  // 6. Update sort header indicators
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.col === sortCol) th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+  });
+
+  // 7. Update showing count
+  const countEl = document.getElementById('showing-count');
+  if (countEl) countEl.textContent = `Showing ${visible.length} of ${allRows.length} stocks`;
+}
+
+// ── Detail row toggle + lazy build ───────────────────────────────────────
+function toggleDetail(ticker) {
+  const dr = document.getElementById('dr-' + ticker);
+  const sr = document.querySelector(`.stock-row[data-ticker="${CSS.escape(ticker)}"]`);
+  if (!dr) return;
+
+  const isOpen = dr.style.display !== 'none';
+
+  // Close all open rows first
+  document.querySelectorAll('.detail-row').forEach(r => r.style.display = 'none');
+  document.querySelectorAll('.stock-row.expanded').forEach(r => r.classList.remove('expanded'));
+
+  if (!isOpen) {
+    // Lazy-build on first open
+    if (!dr.dataset.built) {
+      const inner = document.getElementById('di-' + ticker);
+      if (inner) inner.innerHTML = buildDetailHTML(ticker);
+      dr.dataset.built = '1';
+    }
+    dr.style.display = '';
+    if (sr) sr.classList.add('expanded');
+  }
+}
+
+// ── Detail HTML builder (from DETAIL_DATA) ───────────────────────────────
+const AGENT_META = {
+  dalio:   {name: 'Ray Dalio',       tag: 'Macro · Regime'},
+  graham:  {name: 'Benjamin Graham', tag: 'Value · Margin of Safety'},
+  buffett: {name: 'Warren Buffett',  tag: 'Quality · Moat'},
+  lynch:   {name: 'Peter Lynch',     tag: 'Growth · Discovery'},
+  simons:  {name: 'Jim Simons',      tag: 'Quant · Pattern'},
+};
+const REGIME_META = {
+  'risk-on':     {icon:'📈', label:'RISK-ON',      cls:'risk-on'},
+  'neutral':     {icon:'⚖️', label:'NEUTRAL',      cls:'neutral'},
+  'risk-off':    {icon:'🛡️', label:'RISK-OFF',     cls:'risk-off'},
+  'deleveraging':{icon:'⚠️', label:'DELEVERAGING', cls:'deleveraging'},
+};
+
+function dimBar(label, score) {
+  if (score == null) return '';
+  const pct  = Math.min(Math.abs(score) * 50, 50).toFixed(1);
+  const sign = score >= 0 ? '+' : '';
+  const fill = score >= 0
+    ? `<div class="dim-fill-pos" style="width:${pct}%"></div>`
+    : `<div class="dim-fill-neg" style="width:${pct}%"></div>`;
+  const lbl  = esc(label.replace(/_/g,' '));
+  return `<div class="dim-row"><span class="dim-label">${lbl}</span><div class="dim-track">${fill}</div><span class="dim-val">${sign}${score.toFixed(2)}</span></div>`;
+}
+
+function agentCard(key, data, contrib) {
+  if (!data) return '';
+  const m      = AGENT_META[key] || {name: key, tag: ''};
+  const signal = (data.signal || 'watch').toLowerCase();
+  const conf   = ((data.confidence || 0) * 100).toFixed(0);
+  const rsn    = esc(data.reasoning || '');
+  const dims   = data.dimension_scores || {};
+  const dimHtml = Object.entries(dims).map(([k,v]) => dimBar(k,v)).join('');
+  const ewtHtml = contrib
+    ? `<span class="confidence-val" title="Effective weight">${((contrib.effective_weight||0)*100).toFixed(1)}% wt</span>`
+    : '';
+  return `<div class="agent-card signal-${signal}">
+  <div class="card-header"><div><div class="agent-name">${esc(m.name)}</div><div class="agent-tag">${esc(m.tag)}</div></div><span class="badge badge-${signal}">${signal.toUpperCase()}</span></div>
+  <div class="confidence-row"><span>Confidence</span><div class="confidence-track"><div class="confidence-fill" style="width:${conf}%"></div></div><span class="confidence-val">${conf}%</span>${ewtHtml}</div>
+  <p class="reasoning">${rsn}</p>
+  <div class="dim-scores">${dimHtml}</div>
+</div>`;
+}
+
+function indCls(label, value) {
+  if (value == null) return 'neutral';
+  const lbl = label.toLowerCase();
+  if (lbl.includes('macd') || lbl.includes('cross')) {
+    const s = String(value).toLowerCase();
+    return (s.includes('bullish') || s.includes('golden')) ? 'bullish' : 'bearish';
+  }
+  if (lbl.includes('rsi')) {
+    const v = parseFloat(value);
+    return v > 60 ? 'bullish' : v < 40 ? 'bearish' : 'neutral';
+  }
+  if (lbl.includes('momentum') || lbl.includes('vs ma') || lbl.includes('52w') || lbl.includes('vs 52')) {
+    try { return parseFloat(String(value).replace('%','')) > 0 ? 'bullish' : 'bearish'; } catch(e) { return 'neutral'; }
+  }
+  return 'neutral';
+}
+
+function quantIndicator(label, value, note) {
+  const cls  = indCls(label, value);
+  const disp = value != null ? esc(String(value)) : '—';
+  return `<div class="indicator"><div class="ind-label">${esc(label)}</div><div class="ind-value ${cls}">${disp}</div><div class="ind-note">${esc(note||'')}</div></div>`;
+}
+
+function scoreBar(score, rec, consensus, veto) {
+  const pct  = (score * 100).toFixed(2);
+  const cons = Object.entries(consensus || {}).map(([sig, agents]) => {
+    if (!agents.length) return '';
+    const pills = agents.map(a => `<span class="consensus-agent ${sig}">${esc(a)}</span>`).join('');
+    return `<div class="consensus-group"><span class="consensus-label">${sig.toUpperCase()}</span>${pills}</div>`;
+  }).join('');
+  const vetoNote = veto
+    ? '<div style="margin-top:12px;font-size:12px;color:var(--red-light)">⚡ Deleveraging veto applied — buy signals were capped to watch</div>'
+    : '';
+  return `<div class="verdict">
+  <div class="verdict-header">
+    <div class="verdict-rec ${rec}">${rec}</div>
+    <div class="score-display"><div class="score-number">${score.toFixed(3)}</div><div class="score-label">weighted score (0–1)</div></div>
+  </div>
+  <div class="score-bar-wrap">
+    <div class="score-track"><div class="score-zone-avoid"></div><div class="score-zone-watch"></div><div class="score-zone-buy"></div></div>
+    <div class="score-needle-wrap"><div class="score-needle" style="left:${pct}%"></div></div>
+    <div class="score-zone-label"><span>AVOID (0–0.49)</span><span>WATCH</span><span style="text-align:right">BUY (0.70–1.0)</span></div>
+  </div>
+  <div class="consensus-row">${cons}</div>
+  ${vetoNote}
+</div>`;
+}
+
+function buildDetailHTML(ticker) {
+  const d = DETAIL_DATA[ticker];
+  if (!d) return '<div style="padding:20px;color:var(--text-muted)">No detail data available for ' + esc(ticker) + '</div>';
+
+  const agents = d.agents || {};
+  const tech   = d.technicals || {};
+  const mom    = tech.momentum || {};
+  const bb     = tech.bollinger_bands || {};
+  const mcd    = tech.macd || {};
+
+  // Agent cards (graham, buffett, lynch)
+  const contribs = d.contributions || {};
+  const cardHtml = ['graham','buffett','lynch'].map(a =>
+    agentCard(a, agents[a], contribs[a])
+  ).join('');
+
+  // Simons quant grid
+  const rsi    = tech.rsi_14;
+  const macdCo = mcd.crossover;
+  const maCrs  = tech.ma_cross;
+  const pvma50 = tech.price_vs_ma50  != null ? tech.price_vs_ma50.toFixed(1)  + '%' : null;
+  const pvma200= tech.price_vs_ma200 != null ? tech.price_vs_ma200.toFixed(1) + '%' : null;
+  const bbPos  = bb.position;
+  const volR   = tech.volume_ratio_20d != null ? tech.volume_ratio_20d.toFixed(1) + '×' : null;
+  const m30    = mom['30d'] != null ? (mom['30d'] >= 0 ? '+' : '') + mom['30d'].toFixed(1) + '%' : null;
+  const m90    = mom['90d'] != null ? (mom['90d'] >= 0 ? '+' : '') + mom['90d'].toFixed(1) + '%' : null;
+  const hi52   = tech['52w_pct_from_high'] != null ? tech['52w_pct_from_high'].toFixed(1) + '%' : null;
+  const siData = agents['simons'] || {};
+  const siSig  = (siData.signal || 'watch').toLowerCase();
+  const siConf = ((siData.confidence || 0) * 100).toFixed(0);
+
+  const quantHtml = `<div class="quant-bar">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div class="section-title" style="margin:0">JIM SIMONS — QUANT INDICATORS</div>
+    <span class="badge badge-${siSig}">${siSig.toUpperCase()} · ${siConf}%</span>
+  </div>
+  <div class="quant-indicators">
+    ${quantIndicator('RSI (14)', rsi, 'overbought >70, oversold <30')}
+    ${quantIndicator('MACD', macdCo, 'histogram: ' + (mcd.histogram != null ? mcd.histogram.toFixed(4) : '—'))}
+    ${quantIndicator('MA Cross', maCrs, 'golden = bullish, death = bearish')}
+    ${quantIndicator('vs MA50', pvma50, '% above/below 50d avg')}
+    ${quantIndicator('vs MA200', pvma200, '% above/below 200d avg')}
+    ${quantIndicator('BB Position', bbPos, '0=lower band, 1=upper band')}
+    ${quantIndicator('Vol Ratio', volR, 'vs 20-day avg volume')}
+    ${quantIndicator('Momentum 30d', m30, '')}
+    ${quantIndicator('Momentum 90d', m90, '')}
+    ${quantIndicator('vs 52W High', hi52, '')}
+  </div>
+</div>`;
+
+  // Compact regime note
+  const rm = REGIME_META[d.regime_flag] || REGIME_META['neutral'];
+  const regimeNote = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${rm.icon} Macro regime: <strong>${rm.label}</strong></div>`;
+
+  return `${regimeNote}
+<div class="section-title">PERSONA ANALYSIS</div>
+<div class="agents-grid" style="margin-bottom:16px">${cardHtml}</div>
+${quantHtml}
+${scoreBar(d.score, d.recommendation, d.consensus, d.veto)}`;
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  applyView();
+});
+
+</script>
+</body>
+</html>
