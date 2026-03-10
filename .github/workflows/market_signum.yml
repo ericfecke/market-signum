@@ -1,0 +1,114 @@
+name: MARKET SIGNUM — NYSE Batch Scan
+
+# ── Schedule ──────────────────────────────────────────────────────────────────
+# GitHub Actions cron runs in UTC.
+# Targets three ET market checkpoints (EDT = UTC−4, the majority of the year):
+#
+#   9:30 AM ET  → 13:30 UTC   market open
+#  12:00 PM ET  → 16:00 UTC   midday
+#   4:30 PM ET  → 20:30 UTC   after market close
+#
+# Note: During EST months (first Sunday of Nov → second Sunday of Mar) runs fire
+# 1 hour later in ET (10:30 AM / 1:00 PM / 5:30 PM). Adjust the UTC times below
+# to compensate if exact ET alignment is required during winter months.
+#
+# Secrets required  : none (ANTHROPIC_API_KEY is optional — see below)
+# Secrets optional  : ANTHROPIC_API_KEY → enables AI-generated reasoning text
+#                     (signals and scores are identical without it)
+# GitHub Pages      : Settings → Pages → Source: Deploy from branch → main / root
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: '30 13 * * 1-5'   # 9:30 AM ET  (market open)
+    - cron: '0 16 * * 1-5'    # 12:00 PM ET (midday)
+    - cron: '30 20 * * 1-5'   # 4:30 PM ET  (after close)
+
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Ticker limit for testing (leave blank for full NYSE scan)'
+        required: false
+        default: ''
+      delay:
+        description: 'Seconds between tickers (default: 1.0)'
+        required: false
+        default: '1.0'
+      skip_filter:
+        description: 'Skip market cap / volume pre-filter?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  batch-scan:
+    name: Run NYSE Batch Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90       # full NYSE scan: ~45–60 min; 90 min is a safe ceiling
+
+    permissions:
+      contents: write         # needed to push index.html + output/report.html back
+
+    steps:
+      # ── 1. Checkout ─────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so the push step can rebase cleanly if needed
+          fetch-depth: 1
+
+      # ── 2. Python ───────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ── 3. Dependencies ──────────────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas numpy requests anthropic
+
+      # ── 4. Batch scan ────────────────────────────────────────────────────────
+      - name: Run MARKET SIGNUM batch scan
+        env:
+          # Optional — enables AI-generated reasoning text in agent cards.
+          # Add ANTHROPIC_API_KEY in repo Settings → Secrets → Actions.
+          # Without it, deterministic fallback reasoning is used automatically.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          ARGS="--delay ${{ github.event.inputs.delay || '1.0' }}"
+
+          if [ -n "${{ github.event.inputs.limit }}" ]; then
+            ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
+          fi
+
+          if [ "${{ github.event.inputs.skip_filter }}" = "true" ]; then
+            ARGS="$ARGS --skip-filter"
+          fi
+
+          echo "Running: python tools/batch_runner.py $ARGS"
+          python tools/batch_runner.py $ARGS
+
+      # ── 5. Commit + push ─────────────────────────────────────────────────────
+      - name: Commit and push updated report
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage the two output files (output/ is not gitignored)
+          git add index.html output/report.html
+
+          # Only commit if something actually changed
+          if git diff --cached --quiet; then
+            echo "Report unchanged — no commit needed."
+          else
+            TIMESTAMP=$(TZ='America/New_York' date '+%Y-%m-%d %I:%M %p ET')
+            git commit -m "chore: market signum scan — ${TIMESTAMP}"
+            git push
+            echo "Report pushed: ${TIMESTAMP}"
+          fi
