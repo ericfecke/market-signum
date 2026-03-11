@@ -575,6 +575,45 @@ a { color: var(--blue-light); text-decoration: none; }
 .ref-buy   { color: var(--green-light) !important; }
 .ref-avoid { color: var(--red-light)   !important; }
 
+/* ── Personas section ──────────────────────────────────────────────── */
+.personas-section { border:1px solid var(--border); border-radius:8px; margin-bottom:16px; overflow:hidden; }
+.personas-header  { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-card); cursor:pointer; user-select:none; }
+.personas-title   { font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--text-faint); text-transform:uppercase; }
+.personas-toggle  { font-size:11px; color:var(--blue-light); background:none; border:none; cursor:pointer; padding:2px 6px; }
+.personas-body    { display:none; padding:14px; background:var(--bg); }
+.personas-body.open { display:block; }
+.personas-grid    { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+.persona-card     { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:12px; font-size:11px; line-height:1.5; }
+.persona-card-name{ font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
+.persona-card-tag { color:var(--text-faint); font-size:10px; margin-bottom:8px; }
+.persona-row      { display:flex; gap:6px; padding:3px 0; border-bottom:1px solid var(--border-light); }
+.persona-row:last-child { border-bottom:none; }
+.persona-lbl      { color:var(--text-faint); flex-shrink:0; width:64px; font-weight:600; padding-top:1px; font-size:10px; }
+.persona-val      { color:var(--text-muted); }
+.persona-buy      { color:var(--green-light) !important; }
+.persona-avoid    { color:var(--red-light)   !important; }
+
+/* ── Compact agent tiles (expanded rows) ───────────────────────────── */
+.agents-compact   { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+.agent-tile       { background:var(--bg-card2); border:1px solid var(--border); border-radius:6px; padding:10px 12px; }
+.agent-tile.signal-buy   { border-left:3px solid var(--green-light); }
+.agent-tile.signal-watch { border-left:3px solid var(--yellow-light); }
+.agent-tile.signal-avoid { border-left:3px solid var(--red-light); }
+.tile-name        { font-size:11px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.tile-tag         { font-size:10px; color:var(--text-faint); margin-bottom:6px; }
+.tile-conf        { font-size:10px; color:var(--text-muted); margin-top:5px; }
+.tile-wt          { font-size:10px; color:var(--text-faint); }
+
+/* ── Compact score row (expanded rows) ────────────────────────────── */
+.score-row        { display:flex; align-items:center; gap:14px; padding:10px 0; border-top:1px solid var(--border); flex-wrap:wrap; }
+.score-row-num    { font-size:22px; font-weight:700; color:var(--text); line-height:1; }
+.score-row-label  { font-size:10px; color:var(--text-faint); text-transform:uppercase; margin-top:2px; }
+.score-needle-mini{ position:relative; height:6px; border-radius:3px; flex:1; min-width:80px; overflow:visible;
+                    background:linear-gradient(to right, var(--red-light) 0% 49%, var(--yellow-light) 49% 70%, var(--green-light) 70% 100%); }
+.sneedle-dot      { position:absolute; top:50%; transform:translate(-50%,-50%);
+                    width:10px; height:10px; border-radius:50%; background:var(--text); border:2px solid var(--bg); z-index:1; }
+.score-veto       { font-size:11px; color:var(--red-light); margin-top:4px; width:100%; }
+
 /* ── Footer ───────────────────────────────────────────────────────── */
 footer { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border-light); }
 
@@ -638,6 +677,14 @@ function setSectorFilter(val) {
 function setSearch(val) {
   filterSearch = val.toLowerCase().trim();
   applyView();
+}
+
+function togglePersonas() {
+  const body = document.getElementById('personas-body');
+  const btn  = document.getElementById('personas-toggle');
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (btn) btn.textContent = open ? '\u25b2 Collapse' : '\u25bc Expand';
 }
 
 // ── Apply current view (sort + filter) ───────────────────────────────────
@@ -753,211 +800,49 @@ const REGIME_META = {
   'deleveraging':{icon:'⚠️', label:'DELEVERAGING', cls:'deleveraging'},
 };
 
-// Quick-reference data for each persona — mirrors _PERSONA_REF in the Python layer.
-const PERSONA_REF = {
-  graham:  {
-    philosophy: 'Buy only when price is significantly below intrinsic value — margin of safety above all else.',
-    metrics:    'P/E ratio · Price-to-book · Debt/Equity · Current ratio',
-    buy:        'P/E \u226410, P/B \u22641.0, D/E <0.5, current ratio \u22652, earnings stable 10y',
-    avoid:      'P/E >20, P/B >2.0, D/E \u22650.5, current ratio <1.5, or erratic earnings',
-  },
-  buffett: {
-    philosophy: 'A wonderful company at a fair price \u2014 durable moat and capital returns matter more than cheapness.',
-    metrics:    'Return on equity · Profit margin · Free cash flow · Moat evidence',
-    buy:        'ROE >15% consistently, margins above peers, clear moat, FCF positive',
-    avoid:      'ROE <10%, margins thin or shrinking, no competitive advantage, weak or negative FCF',
-  },
-  lynch:   {
-    philosophy: 'Find growth before the institutions do \u2014 understand the business, trust the earnings trajectory.',
-    metrics:    'PEG ratio · Earnings growth rate · Institutional ownership % · Insider activity',
-    buy:        'PEG \u22641.0, earnings growing 15\u201330% YoY, low institutional ownership, insiders buying',
-    avoid:      'PEG >2.0, earnings growth stalling or negative, fully institutionally owned, insiders selling',
-  },
-  simons:  {
-    philosophy: 'The market has patterns \u2014 find them with math, not narrative. No opinions on the business.',
-    metrics:    'RSI · MACD crossover · 50d/200d MA cross · 30/60/90d momentum',
-    buy:        'RSI 40\u201365 trending up, bullish MACD crossover, golden cross (50d >200d), positive momentum',
-    avoid:      'RSI >75 (overbought) or <25 with no reversal, bearish MACD, death cross, negative momentum',
-  },
-  dalio:   {
-    philosophy: 'Understand the machine \u2014 the debt/economic cycle determines which assets win.',
-    metrics:    '10Y yield trend · VIX · Credit spreads (TLT) · Inflation proxies',
-    buy:        'Easing rates, low/falling VIX, early-to-mid debt cycle \u2192 boosts Lynch & Simons weights',
-    avoid:      'Tightening, rising VIX, late cycle \u2192 boosts Graham & Buffett; deleveraging vetoes BUY calls',
-  },
-};
-
-function toggleRef(event, panelId) {
-  event.stopPropagation();
-  const panel = document.getElementById(panelId);
-  const btn   = event.currentTarget;
-  if (!panel) return;
-  const isOpen = panel.classList.contains('visible');
-  panel.classList.toggle('visible', !isOpen);
-  btn.classList.toggle('active', !isOpen);
-}
-
-function refPanelHTML(key, panelId) {
-  const r = PERSONA_REF[key];
-  if (!r) return '';
-  return `<div class="agent-ref-panel" id="${panelId}">` +
-    `<div class="ref-row"><span class="ref-label">Philosophy</span><span class="ref-value">${esc(r.philosophy)}</span></div>` +
-    `<div class="ref-row"><span class="ref-label">Metrics</span><span class="ref-value">${esc(r.metrics)}</span></div>` +
-    `<div class="ref-row"><span class="ref-label">\uD83D\uDFE2 Buy</span><span class="ref-value ref-buy">${esc(r.buy)}</span></div>` +
-    `<div class="ref-row"><span class="ref-label">\uD83D\uDD34 Avoid</span><span class="ref-value ref-avoid">${esc(r.avoid)}</span></div>` +
-    `</div>`;
-}
-
-function dimBar(label, score) {
-  if (score == null) return '';
-  const pct  = Math.min(Math.abs(score) * 50, 50).toFixed(1);
-  const sign = score >= 0 ? '+' : '';
-  const fill = score >= 0
-    ? `<div class="dim-fill-pos" style="width:${pct}%"></div>`
-    : `<div class="dim-fill-neg" style="width:${pct}%"></div>`;
-  const lbl  = esc(label.replace(/_/g,' '));
-  return `<div class="dim-row"><span class="dim-label">${lbl}</span><div class="dim-track">${fill}</div><span class="dim-val">${sign}${score.toFixed(2)}</span></div>`;
-}
-
-function agentCard(key, data, contrib, ticker) {
+// ── Compact agent tile builder ────────────────────────────────────────
+function agentCard(key, data, contrib) {
   if (!data) return '';
-  const m       = AGENT_META[key] || {name: key, tag: ''};
-  const signal  = (data.signal || 'watch').toLowerCase();
-  const conf    = ((data.confidence || 0) * 100).toFixed(0);
-  const rsn     = esc(data.reasoning || '');
-  const dims    = data.dimension_scores || {};
-  const dimHtml = Object.entries(dims).map(([k,v]) => dimBar(k,v)).join('');
-  const ewtHtml = contrib
-    ? `<span class="confidence-val" title="Effective weight">${((contrib.effective_weight||0)*100).toFixed(1)}% wt</span>`
-    : '';
-  const panelId  = 'ref-' + (ticker || 'st') + '-' + key;
-  const infoBtn  = PERSONA_REF[key]
-    ? `<button class="info-btn" onclick="toggleRef(event,'${panelId}')" title="Quick reference">ⓘ</button>`
-    : '';
-  const refPanel = refPanelHTML(key, panelId);
-  return `<div class="agent-card signal-${signal}">
-  <div class="card-header"><div><div class="agent-name">${esc(m.name)}${infoBtn}</div><div class="agent-tag">${esc(m.tag)}</div></div><span class="badge badge-${signal}">${signal.toUpperCase()}</span></div>
-  ${refPanel}
-  <div class="confidence-row"><span>Confidence</span><div class="confidence-track"><div class="confidence-fill" style="width:${conf}%"></div></div><span class="confidence-val">${conf}%</span>${ewtHtml}</div>
-  <p class="reasoning">${rsn}</p>
-  <div class="dim-scores">${dimHtml}</div>
+  const m      = AGENT_META[key] || {name: key, tag: ''};
+  const signal = (data.signal || 'watch').toLowerCase();
+  const conf   = ((data.confidence || 0) * 100).toFixed(0);
+  const ewt    = contrib ? ((contrib.effective_weight || 0) * 100).toFixed(1) + '%' : '';
+  return `<div class="agent-tile signal-${signal}">
+  <div class="tile-name">${esc(m.name)}</div>
+  <div class="tile-tag">${esc(m.tag)}</div>
+  <span class="badge badge-${signal}">${signal.toUpperCase()}</span>
+  <div class="tile-conf">${conf}% confidence</div>
+  ${ewt ? `<div class="tile-wt">${ewt} weight</div>` : ''}
 </div>`;
 }
 
-function indCls(label, value) {
-  if (value == null) return 'neutral';
-  const lbl = label.toLowerCase();
-  if (lbl.includes('macd') || lbl.includes('cross')) {
-    const s = String(value).toLowerCase();
-    return (s.includes('bullish') || s.includes('golden')) ? 'bullish' : 'bearish';
-  }
-  if (lbl.includes('rsi')) {
-    const v = parseFloat(value);
-    return v > 60 ? 'bullish' : v < 40 ? 'bearish' : 'neutral';
-  }
-  if (lbl.includes('momentum') || lbl.includes('vs ma') || lbl.includes('52w') || lbl.includes('vs 52')) {
-    try { return parseFloat(String(value).replace('%','')) > 0 ? 'bullish' : 'bearish'; } catch(e) { return 'neutral'; }
-  }
-  return 'neutral';
-}
-
-function quantIndicator(label, value, note) {
-  const cls  = indCls(label, value);
-  const disp = value != null ? esc(String(value)) : '—';
-  return `<div class="indicator"><div class="ind-label">${esc(label)}</div><div class="ind-value ${cls}">${disp}</div><div class="ind-note">${esc(note||'')}</div></div>`;
-}
-
-function scoreBar(score, rec, consensus, veto) {
-  const pct  = (score * 100).toFixed(2);
-  const cons = Object.entries(consensus || {}).map(([sig, agents]) => {
-    if (!agents.length) return '';
-    const pills = agents.map(a => `<span class="consensus-agent ${sig}">${esc(a)}</span>`).join('');
-    return `<div class="consensus-group"><span class="consensus-label">${sig.toUpperCase()}</span>${pills}</div>`;
-  }).join('');
-  const vetoNote = veto
-    ? '<div style="margin-top:12px;font-size:12px;color:var(--red-light)">⚡ Deleveraging veto applied — buy signals were capped to watch</div>'
-    : '';
-  return `<div class="verdict">
-  <div class="verdict-header">
-    <div class="verdict-rec ${rec}">${rec}</div>
-    <div class="score-display"><div class="score-number">${score.toFixed(3)}</div><div class="score-label">weighted score (0–1)</div></div>
-  </div>
-  <div class="score-bar-wrap">
-    <div class="score-track"><div class="score-zone-avoid"></div><div class="score-zone-watch"></div><div class="score-zone-buy"></div></div>
-    <div class="score-needle-wrap"><div class="score-needle" style="left:${pct}%"></div></div>
-    <div class="score-zone-label"><span>AVOID (0–0.49)</span><span>WATCH</span><span style="text-align:right">BUY (0.70–1.0)</span></div>
-  </div>
-  <div class="consensus-row">${cons}</div>
-  ${vetoNote}
-</div>`;
-}
-
+// ── Compact detail row builder ────────────────────────────────────────
 function buildDetailHTML(ticker) {
   const d = DETAIL_DATA[ticker];
-  if (!d) return '<div style="padding:20px;color:var(--text-muted)">No detail data available for ' + esc(ticker) + '</div>';
+  if (!d) return '<div style="padding:20px;color:var(--text-muted)">No data for ' + esc(ticker) + '</div>';
 
-  const agents = d.agents || {};
-  const tech   = d.technicals || {};
-  const mom    = tech.momentum || {};
-  const bb     = tech.bollinger_bands || {};
-  const mcd    = tech.macd || {};
-
-  // Agent cards (graham, buffett, lynch) — pass ticker for unique panel IDs
+  const agents   = d.agents   || {};
   const contribs = d.contributions || {};
-  const cardHtml = ['graham','buffett','lynch'].map(a =>
-    agentCard(a, agents[a], contribs[a], ticker)
+
+  const tilesHtml = ['graham','buffett','lynch','simons'].map(a =>
+    agentCard(a, agents[a], contribs[a])
   ).join('');
 
-  // Simons quant grid
-  const rsi    = tech.rsi_14;
-  const macdCo = mcd.crossover;
-  const maCrs  = tech.ma_cross;
-  const pvma50 = tech.price_vs_ma50  != null ? tech.price_vs_ma50.toFixed(1)  + '%' : null;
-  const pvma200= tech.price_vs_ma200 != null ? tech.price_vs_ma200.toFixed(1) + '%' : null;
-  const bbPos  = bb.position;
-  const volR   = tech.volume_ratio_20d != null ? tech.volume_ratio_20d.toFixed(1) + '×' : null;
-  const m30    = mom['30d'] != null ? (mom['30d'] >= 0 ? '+' : '') + mom['30d'].toFixed(1) + '%' : null;
-  const m90    = mom['90d'] != null ? (mom['90d'] >= 0 ? '+' : '') + mom['90d'].toFixed(1) + '%' : null;
-  const hi52   = tech['52w_pct_from_high'] != null ? tech['52w_pct_from_high'].toFixed(1) + '%' : null;
-  const siData = agents['simons'] || {};
-  const siSig  = (siData.signal || 'watch').toLowerCase();
-  const siConf = ((siData.confidence || 0) * 100).toFixed(0);
-
-  const siPanelId  = 'ref-' + ticker + '-simons';
-  const siInfoBtn  = PERSONA_REF['simons']
-    ? `<button class="info-btn" onclick="toggleRef(event,'${siPanelId}')" title="Quick reference">ⓘ</button>`
+  const score = d.score || 0;
+  const rec   = (d.recommendation || 'watch').toLowerCase();
+  const pct   = (score * 100).toFixed(2);
+  const rm    = REGIME_META[d.regime_flag] || REGIME_META['neutral'];
+  const vetoNote = d.veto
+    ? '<div class="score-veto">\u26a1 Deleveraging veto applied \u2014 buy signals capped to watch</div>'
     : '';
-  const siRefPanel = refPanelHTML('simons', siPanelId);
 
-  const quantHtml = `<div class="quant-bar">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div class="section-title" style="margin:0">JIM SIMONS — QUANT INDICATORS${siInfoBtn}</div>
-    <span class="badge badge-${siSig}">${siSig.toUpperCase()} · ${siConf}%</span>
-  </div>
-  ${siRefPanel}
-  <div class="quant-indicators">
-    ${quantIndicator('RSI (14)', rsi, 'overbought >70, oversold <30')}
-    ${quantIndicator('MACD', macdCo, 'histogram: ' + (mcd.histogram != null ? mcd.histogram.toFixed(4) : '—'))}
-    ${quantIndicator('MA Cross', maCrs, 'golden = bullish, death = bearish')}
-    ${quantIndicator('vs MA50', pvma50, '% above/below 50d avg')}
-    ${quantIndicator('vs MA200', pvma200, '% above/below 200d avg')}
-    ${quantIndicator('BB Position', bbPos, '0=lower band, 1=upper band')}
-    ${quantIndicator('Vol Ratio', volR, 'vs 20-day avg volume')}
-    ${quantIndicator('Momentum 30d', m30, '')}
-    ${quantIndicator('Momentum 90d', m90, '')}
-    ${quantIndicator('vs 52W High', hi52, '')}
-  </div>
-</div>`;
-
-  // Compact regime note
-  const rm = REGIME_META[d.regime_flag] || REGIME_META['neutral'];
-  const regimeNote = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${rm.icon} Macro regime: <strong>${rm.label}</strong></div>`;
-
-  return `${regimeNote}
-<div class="section-title">PERSONA ANALYSIS</div>
-<div class="agents-grid" style="margin-bottom:16px">${cardHtml}</div>
-${quantHtml}
-${scoreBar(d.score, d.recommendation, d.consensus, d.veto)}`;
+  return `<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">${rm.icon} Macro: <strong>${rm.label}</strong></div>
+<div class="agents-compact">${tilesHtml}</div>
+<div class="score-row">
+  <div><div class="score-row-num">${score.toFixed(3)}</div><div class="score-row-label">weighted score</div></div>
+  <span class="badge badge-${rec}" style="font-size:13px;padding:4px 10px">${rec.toUpperCase()}</span>
+  <div class="score-needle-mini"><div class="sneedle-dot" style="left:${pct}%"></div></div>
+</div>${vetoNote}`;
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────
@@ -1299,30 +1184,15 @@ def _extract_detail_data(result: dict) -> dict:
     score_result = result.get("score_result")  or {}
 
     meta = stock_data.get("meta") or {}
-    tech = stock_data.get("technicals") or {}
 
-    # Minimal technicals for the quant grid
-    technicals = {
-        "rsi_14":            tech.get("rsi_14"),
-        "macd":              tech.get("macd"),
-        "bollinger_bands":   tech.get("bollinger_bands"),
-        "momentum":          tech.get("momentum"),
-        "ma_cross":          tech.get("ma_cross"),
-        "price_vs_ma50":     tech.get("price_vs_ma50"),
-        "price_vs_ma200":    tech.get("price_vs_ma200"),
-        "volume_ratio_20d":  tech.get("volume_ratio_20d"),
-        "52w_pct_from_high": tech.get("52w_pct_from_high"),
-    }
-
+    # Compact per-agent data — signal + confidence only (reasoning/dims removed for performance)
     agents = {}
     for a in _AGENTS:
         ar = agent_results.get(a)
         if ar:
             agents[a] = {
-                "signal":           ar.get("signal"),
-                "confidence":       ar.get("confidence"),
-                "reasoning":        ar.get("reasoning"),
-                "dimension_scores": ar.get("dimension_scores") or {},
+                "signal":     ar.get("signal"),
+                "confidence": ar.get("confidence"),
             }
 
     return {
@@ -1331,10 +1201,8 @@ def _extract_detail_data(result: dict) -> dict:
         "price":          meta.get("price"),
         "regime_flag":    score_result.get("regime_flag", "neutral"),
         "agents":         agents,
-        "technicals":     technicals,
         "score":          score_result.get("final_score", 0),
         "recommendation": score_result.get("recommendation", "WATCH"),
-        "consensus":      score_result.get("consensus") or {},
         "veto":           score_result.get("deleveraging_veto_applied", False),
         "contributions":  {
             k: {"effective_weight": v.get("effective_weight", 0)}
@@ -1492,6 +1360,8 @@ def _build_dashboard_html(results: list[dict], dalio_result: dict | None) -> str
 
 {regime_banner_html}
 
+{_build_personas_html()}
+
 <!-- Summary bar -->
 <div class="summary-bar">
   <div class="summary-stat">
@@ -1584,6 +1454,49 @@ def _build_weight_pills(regime: str) -> str:
         cls = "elevated" if w > nw + 0.03 else "reduced" if w < nw - 0.03 else ""
         pills.append(f'<span class="weight-pill {cls}">{agent.capitalize()} {w:.0%}</span>')
     return "".join(pills)
+
+
+def _build_personas_html() -> str:
+    """Collapsible Personas reference section — server-rendered, batch dashboard only."""
+    agent_order = ["graham", "buffett", "dalio", "lynch", "simons"]
+    cards = []
+    for key in agent_order:
+        ref  = _PERSONA_REF.get(key, {})
+        meta = _AGENT_META.get(key, {"name": key, "tag": ""})
+        buy_lbl   = "Risk-on"  if key == "dalio" else "Buy when"
+        avoid_lbl = "Risk-off" if key == "dalio" else "Avoid when"
+        cards.append(f"""<div class="persona-card">
+  <div class="persona-card-name">{_e(meta['name'])}</div>
+  <div class="persona-card-tag">{_e(meta['tag'])}</div>
+  <div class="persona-row">
+    <span class="persona-lbl">Philosophy</span>
+    <span class="persona-val">{_e(ref.get('philosophy', ''))}</span>
+  </div>
+  <div class="persona-row">
+    <span class="persona-lbl">Metrics</span>
+    <span class="persona-val">{_e(ref.get('metrics', ''))}</span>
+  </div>
+  <div class="persona-row">
+    <span class="persona-lbl persona-buy">&#x1F7E2; {_e(buy_lbl)}</span>
+    <span class="persona-val persona-buy">{_e(ref.get('buy', ''))}</span>
+  </div>
+  <div class="persona-row">
+    <span class="persona-lbl persona-avoid">&#x1F534; {_e(avoid_lbl)}</span>
+    <span class="persona-val persona-avoid">{_e(ref.get('avoid', ''))}</span>
+  </div>
+</div>""")
+    cards_html = "\n".join(cards)
+    return f"""<div class="personas-section">
+  <div class="personas-header" onclick="togglePersonas()">
+    <span class="personas-title">&#128100; Persona Reference</span>
+    <button class="personas-toggle" id="personas-toggle">&#9660; Expand</button>
+  </div>
+  <div class="personas-body" id="personas-body">
+    <div class="personas-grid">
+{cards_html}
+    </div>
+  </div>
+</div>"""
 
 
 # ---------------------------------------------------------------------------
