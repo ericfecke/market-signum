@@ -546,7 +546,7 @@ def main():
 
     bar = "=" * 62
     print(bar)
-    print(f"  DALIO MACRO REGIME  —  {result['ticker']}")
+    print(f"  DALIO MACRO REGIME  -  {result['ticker']}")
     print(bar)
     print(f"  Regime:     {_REGIME_ICON.get(result['regime_flag'], result['regime_flag'])}")
     print(f"  Signal:     {_SIGNAL_ICON.get(result['signal'], result['signal'])}")
@@ -555,7 +555,7 @@ def main():
     print("  Reasoning:")
     print(_wrap(result["reasoning"]))
     print()
-    print("  Dimension Scores  (risk-off ◀─────▶ risk-on)")
+    print("  Dimension Scores  (risk-off <-----> risk-on)")
     print("  " + "-" * 44)
     for dim, score in result["macro_scores"].items():
         bar_str = _mini_bar(score)
@@ -584,7 +584,7 @@ def main():
     out_path = TMP_DIR / f"{result['ticker']}_dalio.json"
     with open(out_path, "w") as f:
         json.dump(result, f, indent=2)
-    print(f"\n  Output → .tmp/{result['ticker']}_dalio.json\n")
+    print(f"\n  Output -> .tmp/{result['ticker']}_dalio.json\n")
 
 
 if __name__ == "__main__":

@@ -266,9 +266,9 @@ def main():
         data = _load_agent(ticker, agent)
         if data:
             agent_results[agent] = data
-            print(f"  ✓ {agent}")
+            print(f"  [OK] {agent}")
         else:
-            print(f"  ✗ {agent} — .tmp/{ticker}_{agent}.json not found (skipped)")
+            print(f"  [FAIL] {agent} - .tmp/{ticker}_{agent}.json not found (skipped)")
 
     if not agent_results:
         print(f"\nNo agent results found for {ticker}. Run the agents first.")
@@ -284,12 +284,12 @@ def main():
     score   = result["final_score"]
 
     print(f"\n{bar_str}")
-    print(f"  MARKET SIGNUM VERDICT  —  {result['ticker']}")
+    print(f"  MARKET SIGNUM VERDICT  -  {result['ticker']}")
     print(bar_str)
     print(f"  {_REC_ICON.get(rec, '')} {rec}   (score {score:.3f})")
     print(f"  Regime: {_REG_LABEL.get(regime, regime)}")
     if result["deleveraging_veto_applied"]:
-        print(f"  ⚠️  Deleveraging veto applied — buy signals capped to watch")
+        print(f"  [WARN]  Deleveraging veto applied - buy signals capped to watch")
     print()
 
     # Score bar
@@ -304,7 +304,7 @@ def main():
     for agent in _AGENTS:
         c = result["agent_contributions"].get(agent)
         if c is None:
-            print(f"  {agent:<10} {'—':<8} {'—':>5}  {'—':>7}  {'—':>6}  {'—':>7}  (missing)")
+            print(f"  {agent:<10} {'-':<8} {'-':>5}  {'-':>7}  {'-':>6}  {'-':>7}  (missing)")
             continue
         sig   = c["vetoed_signal"]
         veto  = " [veto]" if c.get("veto_applied") else ""
@@ -321,13 +321,13 @@ def main():
     buy_agents   = result["consensus"]["buy"]
     watch_agents = result["consensus"]["watch"]
     avoid_agents = result["consensus"]["avoid"]
-    if buy_agents:   print(f"  🟢 Buy:   {', '.join(buy_agents)}")
-    if watch_agents: print(f"  🟡 Watch: {', '.join(watch_agents)}")
-    if avoid_agents: print(f"  🔴 Avoid: {', '.join(avoid_agents)}")
+    if buy_agents:   print(f"  Buy:   {', '.join(buy_agents)}")
+    if watch_agents: print(f"  Watch: {', '.join(watch_agents)}")
+    if avoid_agents: print(f"  Avoid: {', '.join(avoid_agents)}")
 
     print(f"\n  Run at: {result['run_at'][:19]}")
     print(bar_str)
-    print(f"\n  Output → .tmp/{result['ticker']}_score.json\n")
+    print(f"\n  Output -> .tmp/{result['ticker']}_score.json\n")
 
 
 if __name__ == "__main__":

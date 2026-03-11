@@ -160,7 +160,7 @@ def _fetch_sec_edgar() -> list[dict]:
     if not tickers:
         raise ValueError("SEC EDGAR: parsed successfully but found 0 NYSE tickers.")
 
-    print(f"  ✓ SEC EDGAR: {len(tickers)} NYSE tickers", flush=True)
+    print(f"  [OK] SEC EDGAR: {len(tickers)} NYSE tickers", flush=True)
     return tickers
 
 
@@ -183,7 +183,7 @@ def _fetch_wikipedia_fallback() -> list[dict]:
     try:
         import pandas as pd
     except ImportError:
-        print("  ✗ pandas not installed — skipping Wikipedia fallback.", flush=True)
+        print("  [FAIL] pandas not installed - skipping Wikipedia fallback.", flush=True)
         return []
 
     try:
@@ -191,11 +191,11 @@ def _fetch_wikipedia_fallback() -> list[dict]:
         resp.raise_for_status()
         tables = pd.read_html(io.StringIO(resp.text), header=0)
     except Exception as e:
-        print(f"  ✗ Wikipedia fallback failed: {e}", flush=True)
+        print(f"  [FAIL] Wikipedia fallback failed: {e}", flush=True)
         return []
 
     if not tables:
-        print("  ✗ Wikipedia: no tables found on page.", flush=True)
+        print("  [FAIL] Wikipedia: no tables found on page.", flush=True)
         return []
 
     df = tables[0]
@@ -232,10 +232,10 @@ def _fetch_wikipedia_fallback() -> list[dict]:
         })
 
     if not tickers:
-        print("  ✗ Wikipedia: parsed table but found no usable tickers.", flush=True)
+        print("  [FAIL] Wikipedia: parsed table but found no usable tickers.", flush=True)
         return []
 
-    print(f"  ✓ Wikipedia fallback: {len(tickers)} tickers", flush=True)
+    print(f"  [OK] Wikipedia fallback: {len(tickers)} tickers", flush=True)
     return tickers
 
 
@@ -266,12 +266,12 @@ def _fetch_nasdaq_trader() -> list[dict]:
         resp = requests.get(NASDAQ_TRADER_URL, headers=WEB_HEADERS, timeout=30)
         resp.raise_for_status()
     except Exception as e:
-        print(f"  ✗ NASDAQ Trader fetch failed: {e}", flush=True)
+        print(f"  [FAIL] NASDAQ Trader fetch failed: {e}", flush=True)
         return []
 
     lines = resp.text.strip().splitlines()
     if len(lines) < 2:
-        print("  ✗ NASDAQ Trader: response too short to parse.", flush=True)
+        print("  [FAIL] NASDAQ Trader: response too short to parse.", flush=True)
         return []
 
     # First line is the header
@@ -319,10 +319,10 @@ def _fetch_nasdaq_trader() -> list[dict]:
         tickers.append({"ticker": ticker, "name": name, "exchange": "NYSE", "cik": ""})
 
     if not tickers:
-        print("  ✗ NASDAQ Trader: parsed file but found no NYSE tickers.", flush=True)
+        print("  [FAIL] NASDAQ Trader: parsed file but found no NYSE tickers.", flush=True)
         return []
 
-    print(f"  ✓ NASDAQ Trader: {len(tickers)} NYSE tickers", flush=True)
+    print(f"  [OK] NASDAQ Trader: {len(tickers)} NYSE tickers", flush=True)
     return tickers
 
 
@@ -822,7 +822,7 @@ def fetch_nyse_tickers(use_cache: bool = True) -> list[dict]:
     if use_cache and _is_cache_valid():
         print("Loading NYSE tickers from cache (.tmp/nyse_tickers.csv)...", flush=True)
         tickers = _load_cache()
-        print(f"  ✓ {len(tickers)} tickers from cache", flush=True)
+        print(f"  [OK] {len(tickers)} tickers from cache", flush=True)
         return tickers
 
     tickers: list[dict] = []
@@ -831,21 +831,21 @@ def fetch_nyse_tickers(use_cache: bool = True) -> list[dict]:
     try:
         tickers = _fetch_sec_edgar()
     except Exception as e:
-        print(f"  ✗ SEC EDGAR failed: {e}", flush=True)
+        print(f"  [FAIL] SEC EDGAR failed: {e}", flush=True)
 
     # ── 3. Wikipedia ────────────────────────────────────────────────────────
     if not tickers:
         try:
             tickers = _fetch_wikipedia_fallback()
         except Exception as e:
-            print(f"  ✗ Wikipedia failed: {e}", flush=True)
+            print(f"  [FAIL] Wikipedia failed: {e}", flush=True)
 
     # ── 4. NASDAQ Trader ────────────────────────────────────────────────────
     if not tickers:
         try:
             tickers = _fetch_nasdaq_trader()
         except Exception as e:
-            print(f"  ✗ NASDAQ Trader failed: {e}", flush=True)
+            print(f"  [FAIL] NASDAQ Trader failed: {e}", flush=True)
 
     # ── 5. Stale cache ──────────────────────────────────────────────────────
     if not tickers and CACHE_FILE.exists():
@@ -854,7 +854,7 @@ def fetch_nyse_tickers(use_cache: bool = True) -> list[dict]:
             flush=True,
         )
         tickers = _load_cache()
-        print(f"  ✓ Stale cache: {len(tickers)} tickers", flush=True)
+        print(f"  [OK] Stale cache: {len(tickers)} tickers", flush=True)
         return tickers  # don't overwrite the stale cache with empty data
 
     # ── 6. Hardcoded list ───────────────────────────────────────────────────
@@ -862,12 +862,12 @@ def fetch_nyse_tickers(use_cache: bool = True) -> list[dict]:
         tickers = _hardcoded_nyse_tickers()
         # Cache the hardcoded list so subsequent runs avoid network entirely
         _save_cache(tickers)
-        print(f"  Cache written → .tmp/nyse_tickers.csv", flush=True)
+        print(f"  Cache written -> .tmp/nyse_tickers.csv", flush=True)
         return tickers
 
     # Write fresh cache after any successful live fetch
     _save_cache(tickers)
-    print(f"  Cache written → .tmp/nyse_tickers.csv", flush=True)
+    print(f"  Cache written -> .tmp/nyse_tickers.csv", flush=True)
     return tickers
 
 

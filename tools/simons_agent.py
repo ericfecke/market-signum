@@ -417,7 +417,7 @@ def run_simons_agent(ticker: str, stock_data: dict, cache: bool = True) -> dict:
     signal     = _to_signal(score)
     confidence = _to_confidence(score, missing)
 
-    print(f"  [Simons] Score: {score:+.3f} → {signal.upper()} ({confidence:.0%})")
+    print(f"  [Simons] Score: {score:+.3f} -> {signal.upper()} ({confidence:.0%})")
     print(f"  [Simons] Generating reasoning...")
     reasoning  = _generate_reasoning(ticker, stock_data, score, dim_scores, notes)
 
@@ -493,7 +493,7 @@ def main():
 
     bar = "=" * 62
     print(bar)
-    print(f"  SIMONS QUANT  —  {result['ticker']}")
+    print(f"  SIMONS QUANT  -  {result['ticker']}")
     print(bar)
     print(f"  Signal:     {_SIGNAL_ICON.get(result['signal'], result['signal'])}")
     print(f"  Confidence: {result['confidence']:.0%}")
@@ -501,7 +501,7 @@ def main():
     print("  Reasoning:")
     print(_wrap(result["reasoning"]))
     print()
-    print("  Dimension Scores  (avoid ◀─────▶ buy)")
+    print("  Dimension Scores  (avoid <-----> buy)")
     for dim, score in result["dimension_scores"].items():
         print(f"  {dim:<18} {score:+.3f}  {_mini_bar(score)}")
     print()
@@ -526,7 +526,7 @@ def main():
 
     print(f"\n  Run at: {result['run_at'][:19]}")
     print(bar)
-    print(f"\n  Output → .tmp/{result['ticker']}_simons.json\n")
+    print(f"\n  Output -> .tmp/{result['ticker']}_simons.json\n")
 
 
 if __name__ == "__main__":

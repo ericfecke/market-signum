@@ -370,7 +370,7 @@ def main():
 
     bar = "=" * 62
     print(f"\n{bar}")
-    print(f"  {m['ticker']}  —  {m['name']}")
+    print(f"  {m['ticker']}  -  {m['name']}")
     print(f"  {m['sector']}  |  {m['industry']}")
     print(f"  ${m['price']}  ({_fmt(m['day_change_pct'], '%')})  |  {m['exchange']}  |  {m['currency']}")
     print(f"  Fetched: {m['fetched_at'][:19]}")
@@ -402,7 +402,7 @@ def main():
         for field in missing:
             print(f"    - {field}")
 
-    print(f"\n  Cached → .tmp/{m['ticker']}.json")
+    print(f"\n  Cached -> .tmp/{m['ticker']}.json")
     print(f"{bar}\n")
 
 
