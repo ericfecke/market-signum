@@ -1687,7 +1687,7 @@ def main() -> None:
     print(f"\nRendering report for {ticker.upper()}...")
     try:
         path = render_html(ticker, output_path=out)
-        print(f"  ✓ Report written → {path}")
+        print(f"  [OK] Report written -> {path}")
         print(f"  Open in browser: file:///{path.as_posix()}\n")
     except FileNotFoundError as e:
         print(f"\nERROR: {e}")

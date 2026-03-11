@@ -206,7 +206,7 @@ def run_batch(
     """
     run_start = datetime.now()
     print(f"\n{'='*62}")
-    print(f"  MARKET SIGNUM — Batch Scan")
+    print(f"  MARKET SIGNUM - Batch Scan")
     print(f"  Started: {run_start.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*62}\n")
 
@@ -231,10 +231,10 @@ def run_batch(
     try:
         dalio_result = run_dalio_agent("_MACRO", stock_data=None, cache=use_cache)
         regime_flag = dalio_result.get("regime_flag", "neutral")
-        print(f"  ✓ Regime: {regime_flag.upper()} — {dalio_result.get('signal', 'N/A')}")
+        print(f"  [OK] Regime: {regime_flag.upper()} - {dalio_result.get('signal', 'N/A')}")
         print(f"    {dalio_result.get('reasoning', '')[:100]}...\n")
     except Exception as e:
-        print(f"  ✗ Dalio failed ({e}) — falling back to neutral regime\n")
+        print(f"  [FAIL] Dalio failed ({e}) - falling back to neutral regime\n")
         dalio_result = {
             "ticker": "_MACRO", "signal": "watch", "confidence": 0.5,
             "regime_flag": "neutral", "reasoning": "Dalio agent unavailable; defaulting to neutral.",
@@ -281,8 +281,7 @@ def run_batch(
         else:
             score  = result["score_result"].get("final_score", 0)
             rec    = result["score_result"].get("recommendation", "?")
-            rec_sym = {"BUY": "🟢", "WATCH": "🟡", "AVOID": "🔴"}.get(rec, "⚪")
-            print(f"  {rec_sym} {rec:<5}  score={score:.3f}", flush=True)
+            print(f"  {rec:<7}  score={score:.3f}", flush=True)
             scored_results.append(result)
 
         if delay > 0:
@@ -294,11 +293,11 @@ def run_batch(
         print(f"\nStep 4/4: Rendering master dashboard ({len(scored_results)} stocks)...")
         try:
             report_path = render_html(scored_results, dalio_result=dalio_result)
-            print(f"  ✓ Report written → {report_path}")
+            print(f"  [OK] Report written -> {report_path}")
         except Exception as e:
-            print(f"  ✗ render_html failed: {e}")
+            print(f"  [FAIL] render_html failed: {e}")
     else:
-        print("\nStep 4/4: No scored results to render — skipping HTML output.")
+        print("\nStep 4/4: No scored results to render - skipping HTML output.")
 
     # ── Summary ───────────────────────────────────────────────────────────────
     elapsed = (datetime.now() - run_start).total_seconds()
@@ -314,10 +313,10 @@ def run_batch(
     print(f"  Filtered out        : {filtered_count:>6,}")
     print(f"  Errors / skipped    : {error_count + skipped_count:>6,}")
     print(f"  Scored              : {len(scored_results):>6,}")
-    print(f"  ─────────────────────────────")
-    print(f"  🟢 BUY              : {buy_count:>6,}")
-    print(f"  🟡 WATCH            : {watch_count:>6,}")
-    print(f"  🔴 AVOID            : {avoid_count:>6,}")
+    print(f"  -----------------------------")
+    print(f"  BUY                 : {buy_count:>6,}")
+    print(f"  WATCH               : {watch_count:>6,}")
+    print(f"  AVOID               : {avoid_count:>6,}")
     print(f"  Macro regime        : {regime_flag.upper()}")
     if report_path:
         print(f"  Report              : {report_path}")
