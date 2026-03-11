@@ -427,6 +427,34 @@ market-signum/
 
 ---
 
+## Dependencies
+
+Install all required packages before running any tool:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Package Summary
+
+| Package | Used by | Notes |
+|---|---|---|
+| `yfinance` | `fetch_stock_data.py`, `dalio_agent.py` | Primary market data source — no API key required |
+| `pandas` | `fetch_stock_data.py`, `fetch_nyse_tickers.py` | Data processing and Wikipedia ticker fallback |
+| `requests` | `fetch_nyse_tickers.py` | HTTP calls to SEC EDGAR, Wikipedia, and NASDAQ Trader |
+| `numpy` | indirect | Required by yfinance and pandas; not directly imported |
+| `anthropic` | all agent files | **Optional** — LLM reasoning text; agents fall back to rule-based if key absent |
+
+### LLM Reasoning (Optional)
+
+Add `ANTHROPIC_API_KEY` to `.env` to enable AI-generated reasoning narratives in agent outputs. If the key is absent or the API call fails, all agents fall back to deterministic rule-based reasoning automatically. Signals and confidence scores are **never** affected by the LLM call.
+
+### Standard Library (no install needed)
+
+`json`, `csv`, `io`, `html`, `sys`, `os`, `time`, `argparse`, `pathlib`, `datetime` — all stdlib, included with Python.
+
+---
+
 ## Self-Improvement Loop
 
 Every failure is a chance to make the system stronger:

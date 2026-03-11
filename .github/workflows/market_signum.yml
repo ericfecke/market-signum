@@ -71,7 +71,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install yfinance pandas numpy requests anthropic
+          pip install -r requirements.txt
 
       # ── 4. Batch scan ────────────────────────────────────────────────────────
       - name: Run MARKET SIGNUM batch scan

@@ -1,0 +1,17 @@
+# MARKET SIGNUM — Python dependencies
+# Install: pip install -r requirements.txt
+
+# Market data
+yfinance>=0.2.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0        # indirect — pulled in by yfinance and pandas
+
+# HTTP (NYSE ticker fetching: SEC EDGAR, Wikipedia, NASDAQ Trader)
+requests>=2.28.0
+
+# AI reasoning — optional; agents fall back gracefully if absent or key missing
+# Set ANTHROPIC_API_KEY in .env to enable LLM-generated reasoning narratives.
+# Signals and confidence scores are never affected by the LLM call.
+anthropic>=0.25.0
