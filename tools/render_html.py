@@ -56,6 +56,41 @@ _NEUTRAL_WEIGHTS = {
     "graham": 0.15, "buffett": 0.25, "dalio": 0.20, "lynch": 0.20, "simons": 0.20
 }
 
+# Quick-reference card data for each persona — rendered in the dashboard info panels.
+# Kept in sync with the reference cards in CLAUDE.md.
+_PERSONA_REF = {
+    "graham":  {
+        "philosophy": "Buy only when price is significantly below intrinsic value — margin of safety above all else.",
+        "metrics":    "P/E ratio · Price-to-book · Debt/Equity · Current ratio",
+        "buy":        "P/E ≤ 10, P/B ≤ 1.0, D/E < 0.5, current ratio ≥ 2, earnings stable 10y",
+        "avoid":      "P/E > 20, P/B > 2.0, D/E ≥ 0.5, current ratio < 1.5, or erratic earnings",
+    },
+    "buffett": {
+        "philosophy": "A wonderful company at a fair price — durable moat and capital returns matter more than cheapness.",
+        "metrics":    "Return on equity · Profit margin · Free cash flow · Moat evidence",
+        "buy":        "ROE > 15% consistently, margins above peers, clear moat, FCF positive",
+        "avoid":      "ROE < 10%, margins thin or shrinking, no competitive advantage, weak or negative FCF",
+    },
+    "lynch":   {
+        "philosophy": "Find growth before the institutions do — understand the business, trust the earnings trajectory.",
+        "metrics":    "PEG ratio · Earnings growth rate · Institutional ownership % · Insider activity",
+        "buy":        "PEG ≤ 1.0, earnings growing 15–30% YoY, low institutional ownership, insiders buying",
+        "avoid":      "PEG > 2.0, earnings growth stalling or negative, fully institutionally owned, insiders selling",
+    },
+    "simons":  {
+        "philosophy": "The market has patterns — find them with math, not narrative. No opinions on the business.",
+        "metrics":    "RSI · MACD crossover · 50d/200d MA cross · 30/60/90d momentum",
+        "buy":        "RSI 40–65 trending up, bullish MACD crossover, golden cross (50d > 200d), positive momentum",
+        "avoid":      "RSI > 75 (overbought) or < 25 with no reversal, bearish MACD, death cross, negative momentum",
+    },
+    "dalio":   {
+        "philosophy": "Understand the machine — the debt/economic cycle determines which assets win.",
+        "metrics":    "10Y yield trend · VIX · Credit spreads (TLT) · Inflation proxies",
+        "buy":        "Easing rates, low/falling VIX, early-to-mid debt cycle → boosts Lynch & Simons weights",
+        "avoid":      "Tightening, rising VIX, late cycle → boosts Graham & Buffett; deleveraging vetoes BUY calls",
+    },
+}
+
 _SIG_NUM = {"buy": 2, "watch": 1, "avoid": 0}  # for signal column sort
 
 
@@ -501,6 +536,45 @@ a { color: var(--blue-light); text-decoration: none; }
 .consensus-agent.watch { background: var(--yellow-bg); color: var(--yellow-light); border: 1px solid var(--yellow); }
 .consensus-agent.avoid { background: var(--red-bg);    color: var(--red-light);    border: 1px solid var(--red);    }
 
+/* ── Agent info reference panel ───────────────────────────────────── */
+.info-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 1px 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+  transition: color .15s, border-color .15s, background .15s;
+  flex-shrink: 0;
+}
+.info-btn:hover  { color: var(--blue-light); border-color: var(--blue-light); }
+.info-btn.active { color: var(--blue-light); border-color: var(--blue-light); background: var(--blue-bg); }
+
+.agent-ref-panel {
+  display: none;
+  border-top: 1px solid var(--border-light);
+  padding-top: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.agent-ref-panel.visible { display: block; }
+.ref-row {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.ref-row:last-child  { border-bottom: none; }
+.ref-label { color: var(--text-faint); flex-shrink: 0; width: 70px; font-weight: 600; padding-top: 1px; }
+.ref-value { color: var(--text-muted); }
+.ref-buy   { color: var(--green-light) !important; }
+.ref-avoid { color: var(--red-light)   !important; }
+
 /* ── Footer ───────────────────────────────────────────────────────── */
 footer { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border-light); }
 
@@ -679,6 +753,61 @@ const REGIME_META = {
   'deleveraging':{icon:'⚠️', label:'DELEVERAGING', cls:'deleveraging'},
 };
 
+// Quick-reference data for each persona — mirrors _PERSONA_REF in the Python layer.
+const PERSONA_REF = {
+  graham:  {
+    philosophy: 'Buy only when price is significantly below intrinsic value — margin of safety above all else.',
+    metrics:    'P/E ratio · Price-to-book · Debt/Equity · Current ratio',
+    buy:        'P/E \u226410, P/B \u22641.0, D/E <0.5, current ratio \u22652, earnings stable 10y',
+    avoid:      'P/E >20, P/B >2.0, D/E \u22650.5, current ratio <1.5, or erratic earnings',
+  },
+  buffett: {
+    philosophy: 'A wonderful company at a fair price \u2014 durable moat and capital returns matter more than cheapness.',
+    metrics:    'Return on equity · Profit margin · Free cash flow · Moat evidence',
+    buy:        'ROE >15% consistently, margins above peers, clear moat, FCF positive',
+    avoid:      'ROE <10%, margins thin or shrinking, no competitive advantage, weak or negative FCF',
+  },
+  lynch:   {
+    philosophy: 'Find growth before the institutions do \u2014 understand the business, trust the earnings trajectory.',
+    metrics:    'PEG ratio · Earnings growth rate · Institutional ownership % · Insider activity',
+    buy:        'PEG \u22641.0, earnings growing 15\u201330% YoY, low institutional ownership, insiders buying',
+    avoid:      'PEG >2.0, earnings growth stalling or negative, fully institutionally owned, insiders selling',
+  },
+  simons:  {
+    philosophy: 'The market has patterns \u2014 find them with math, not narrative. No opinions on the business.',
+    metrics:    'RSI · MACD crossover · 50d/200d MA cross · 30/60/90d momentum',
+    buy:        'RSI 40\u201365 trending up, bullish MACD crossover, golden cross (50d >200d), positive momentum',
+    avoid:      'RSI >75 (overbought) or <25 with no reversal, bearish MACD, death cross, negative momentum',
+  },
+  dalio:   {
+    philosophy: 'Understand the machine \u2014 the debt/economic cycle determines which assets win.',
+    metrics:    '10Y yield trend · VIX · Credit spreads (TLT) · Inflation proxies',
+    buy:        'Easing rates, low/falling VIX, early-to-mid debt cycle \u2192 boosts Lynch & Simons weights',
+    avoid:      'Tightening, rising VIX, late cycle \u2192 boosts Graham & Buffett; deleveraging vetoes BUY calls',
+  },
+};
+
+function toggleRef(event, panelId) {
+  event.stopPropagation();
+  const panel = document.getElementById(panelId);
+  const btn   = event.currentTarget;
+  if (!panel) return;
+  const isOpen = panel.classList.contains('visible');
+  panel.classList.toggle('visible', !isOpen);
+  btn.classList.toggle('active', !isOpen);
+}
+
+function refPanelHTML(key, panelId) {
+  const r = PERSONA_REF[key];
+  if (!r) return '';
+  return `<div class="agent-ref-panel" id="${panelId}">` +
+    `<div class="ref-row"><span class="ref-label">Philosophy</span><span class="ref-value">${esc(r.philosophy)}</span></div>` +
+    `<div class="ref-row"><span class="ref-label">Metrics</span><span class="ref-value">${esc(r.metrics)}</span></div>` +
+    `<div class="ref-row"><span class="ref-label">\uD83D\uDFE2 Buy</span><span class="ref-value ref-buy">${esc(r.buy)}</span></div>` +
+    `<div class="ref-row"><span class="ref-label">\uD83D\uDD34 Avoid</span><span class="ref-value ref-avoid">${esc(r.avoid)}</span></div>` +
+    `</div>`;
+}
+
 function dimBar(label, score) {
   if (score == null) return '';
   const pct  = Math.min(Math.abs(score) * 50, 50).toFixed(1);
@@ -690,19 +819,25 @@ function dimBar(label, score) {
   return `<div class="dim-row"><span class="dim-label">${lbl}</span><div class="dim-track">${fill}</div><span class="dim-val">${sign}${score.toFixed(2)}</span></div>`;
 }
 
-function agentCard(key, data, contrib) {
+function agentCard(key, data, contrib, ticker) {
   if (!data) return '';
-  const m      = AGENT_META[key] || {name: key, tag: ''};
-  const signal = (data.signal || 'watch').toLowerCase();
-  const conf   = ((data.confidence || 0) * 100).toFixed(0);
-  const rsn    = esc(data.reasoning || '');
-  const dims   = data.dimension_scores || {};
+  const m       = AGENT_META[key] || {name: key, tag: ''};
+  const signal  = (data.signal || 'watch').toLowerCase();
+  const conf    = ((data.confidence || 0) * 100).toFixed(0);
+  const rsn     = esc(data.reasoning || '');
+  const dims    = data.dimension_scores || {};
   const dimHtml = Object.entries(dims).map(([k,v]) => dimBar(k,v)).join('');
   const ewtHtml = contrib
     ? `<span class="confidence-val" title="Effective weight">${((contrib.effective_weight||0)*100).toFixed(1)}% wt</span>`
     : '';
+  const panelId  = 'ref-' + (ticker || 'st') + '-' + key;
+  const infoBtn  = PERSONA_REF[key]
+    ? `<button class="info-btn" onclick="toggleRef(event,'${panelId}')" title="Quick reference">ⓘ</button>`
+    : '';
+  const refPanel = refPanelHTML(key, panelId);
   return `<div class="agent-card signal-${signal}">
-  <div class="card-header"><div><div class="agent-name">${esc(m.name)}</div><div class="agent-tag">${esc(m.tag)}</div></div><span class="badge badge-${signal}">${signal.toUpperCase()}</span></div>
+  <div class="card-header"><div><div class="agent-name">${esc(m.name)}${infoBtn}</div><div class="agent-tag">${esc(m.tag)}</div></div><span class="badge badge-${signal}">${signal.toUpperCase()}</span></div>
+  ${refPanel}
   <div class="confidence-row"><span>Confidence</span><div class="confidence-track"><div class="confidence-fill" style="width:${conf}%"></div></div><span class="confidence-val">${conf}%</span>${ewtHtml}</div>
   <p class="reasoning">${rsn}</p>
   <div class="dim-scores">${dimHtml}</div>
@@ -767,10 +902,10 @@ function buildDetailHTML(ticker) {
   const bb     = tech.bollinger_bands || {};
   const mcd    = tech.macd || {};
 
-  // Agent cards (graham, buffett, lynch)
+  // Agent cards (graham, buffett, lynch) — pass ticker for unique panel IDs
   const contribs = d.contributions || {};
   const cardHtml = ['graham','buffett','lynch'].map(a =>
-    agentCard(a, agents[a], contribs[a])
+    agentCard(a, agents[a], contribs[a], ticker)
   ).join('');
 
   // Simons quant grid
@@ -788,11 +923,18 @@ function buildDetailHTML(ticker) {
   const siSig  = (siData.signal || 'watch').toLowerCase();
   const siConf = ((siData.confidence || 0) * 100).toFixed(0);
 
+  const siPanelId  = 'ref-' + ticker + '-simons';
+  const siInfoBtn  = PERSONA_REF['simons']
+    ? `<button class="info-btn" onclick="toggleRef(event,'${siPanelId}')" title="Quick reference">ⓘ</button>`
+    : '';
+  const siRefPanel = refPanelHTML('simons', siPanelId);
+
   const quantHtml = `<div class="quant-bar">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div class="section-title" style="margin:0">JIM SIMONS — QUANT INDICATORS</div>
+    <div class="section-title" style="margin:0">JIM SIMONS — QUANT INDICATORS${siInfoBtn}</div>
     <span class="badge badge-${siSig}">${siSig.toUpperCase()} · ${siConf}%</span>
   </div>
+  ${siRefPanel}
   <div class="quant-indicators">
     ${quantIndicator('RSI (14)', rsi, 'overbought >70, oversold <30')}
     ${quantIndicator('MACD', macdCo, 'histogram: ' + (mcd.histogram != null ? mcd.histogram.toFixed(4) : '—'))}
@@ -858,15 +1000,30 @@ def _build_agent_card(agent: str, result: dict, contribution: dict | None = None
         ew = contribution.get("effective_weight", 0)
         weight_info = f'<span class="confidence-val" title="Effective weight">{ew:.1%} wt</span>'
 
+    # Quick-reference info panel — panel_id uses agent key only (single-ticker: one per page)
+    ref      = _PERSONA_REF.get(agent)
+    panel_id = f"ref-{agent}"
+    info_btn = (
+        f'<button class="info-btn" onclick="toggleRef(event,\'{panel_id}\')" title="Quick reference">ⓘ</button>'
+        if ref else ""
+    )
+    ref_panel = f"""<div class="agent-ref-panel" id="{panel_id}">
+    <div class="ref-row"><span class="ref-label">Philosophy</span><span class="ref-value">{_e(ref['philosophy'])}</span></div>
+    <div class="ref-row"><span class="ref-label">Metrics</span><span class="ref-value">{_e(ref['metrics'])}</span></div>
+    <div class="ref-row"><span class="ref-label">🟢 Buy</span><span class="ref-value ref-buy">{_e(ref['buy'])}</span></div>
+    <div class="ref-row"><span class="ref-label">🔴 Avoid</span><span class="ref-value ref-avoid">{_e(ref['avoid'])}</span></div>
+  </div>""" if ref else ""
+
     return f"""
 <div class="agent-card signal-{_e(signal)}">
   <div class="card-header">
     <div>
-      <div class="agent-name">{_e(meta['name'])}</div>
+      <div class="agent-name">{_e(meta['name'])}{info_btn}</div>
       <div class="agent-tag">{_e(meta['tag'])}</div>
     </div>
     <span class="badge badge-{_e(signal)}">{signal.upper()}</span>
   </div>
+  {ref_panel}
   <div class="confidence-row">
     <span>Confidence</span>
     <div class="confidence-track">
@@ -936,12 +1093,26 @@ def _build_simons_quant(simons_result: dict, stock_data: dict) -> str:
     simons_signal = (simons_result.get("signal") or "watch").lower()
     simons_conf   = float(simons_result.get("confidence") or 0)
 
+    # Quick-reference panel for Simons (single-ticker mode; panel_id is page-unique)
+    simons_ref = _PERSONA_REF.get("simons")
+    si_info_btn = (
+        '<button class="info-btn" onclick="toggleRef(event,\'ref-simons\')" title="Quick reference">ⓘ</button>'
+        if simons_ref else ""
+    )
+    si_ref_panel = f"""<div class="agent-ref-panel" id="ref-simons">
+    <div class="ref-row"><span class="ref-label">Philosophy</span><span class="ref-value">{_e(simons_ref['philosophy'])}</span></div>
+    <div class="ref-row"><span class="ref-label">Metrics</span><span class="ref-value">{_e(simons_ref['metrics'])}</span></div>
+    <div class="ref-row"><span class="ref-label">🟢 Buy</span><span class="ref-value ref-buy">{_e(simons_ref['buy'])}</span></div>
+    <div class="ref-row"><span class="ref-label">🔴 Avoid</span><span class="ref-value ref-avoid">{_e(simons_ref['avoid'])}</span></div>
+  </div>""" if simons_ref else ""
+
     return f"""
 <div class="quant-bar">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div class="section-title" style="margin:0">JIM SIMONS — QUANT INDICATORS</div>
+    <div class="section-title" style="margin:0">JIM SIMONS — QUANT INDICATORS{si_info_btn}</div>
     <span class="badge badge-{_e(simons_signal)}">{simons_signal.upper()} · {simons_conf:.0%}</span>
   </div>
+  {si_ref_panel}
   <div class="quant-indicators">{indicators}</div>
 </div>"""
 
@@ -1103,6 +1274,7 @@ def build_html(stock_data: dict, score_result: dict, agent_results: dict) -> str
   MARKET SIGNUM · Generated {now_str} · Data via yfinance · Educational use only — not investment advice
 </footer>
 </div>
+<script>{_js()}</script>
 </body>
 </html>"""
 

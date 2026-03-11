@@ -59,6 +59,14 @@ Each agent receives the same stock data object and returns a standardized signal
 
 **Output:** `{ signal: "buy" | "watch" | "avoid", confidence: 0–1, reasoning: string }`
 
+> **Quick Reference — Benjamin Graham**
+> | | |
+> |---|---|
+> | **Philosophy** | Buy only when price is significantly below intrinsic value — margin of safety above all else. |
+> | **Key metrics** | P/E ratio · Price-to-book · Debt/Equity · Current ratio |
+> | **🟢 BUY when** | P/E ≤ 10, P/B ≤ 1.0, D/E < 0.5, current ratio ≥ 2, earnings stable over 10 years |
+> | **🔴 AVOID when** | P/E > 20, P/B > 2.0, D/E ≥ 0.5, current ratio < 1.5, or earnings history erratic |
+
 ---
 
 ### Warren Buffett — Quality & Moat Analysis
@@ -75,6 +83,14 @@ Each agent receives the same stock data object and returns a standardized signal
 **Signal behavior:** More willing to buy than Graham. Looks for compounders. Will flag a stock even at fair value if the moat is strong.
 
 **Output:** `{ signal: "buy" | "watch" | "avoid", confidence: 0–1, reasoning: string }`
+
+> **Quick Reference — Warren Buffett**
+> | | |
+> |---|---|
+> | **Philosophy** | A wonderful company at a fair price — durable moat and capital returns matter more than cheapness. |
+> | **Key metrics** | Return on equity · Profit margin · Free cash flow · Moat evidence |
+> | **🟢 BUY when** | ROE > 15% consistently, margins above peers, clear moat (brand/switching costs/cost advantage), FCF positive |
+> | **🔴 AVOID when** | ROE < 10%, margins thin or shrinking, no competitive advantage, weak or negative free cash flow |
 
 ---
 
@@ -100,6 +116,14 @@ Dalio's output does not produce a signal for an individual stock. It returns a `
 
 **Output:** `{ signal: "buy" | "watch" | "avoid", confidence: 0–1, reasoning: string, regime_flag: "risk-on" | "neutral" | "risk-off" | "deleveraging" }`
 
+> **Quick Reference — Ray Dalio**
+> | | |
+> |---|---|
+> | **Philosophy** | Understand the machine — the debt/economic cycle determines which assets win, not stock picking alone. |
+> | **Key indicators** | 10Y yield trend · VIX · Credit spreads (TLT) · Inflation proxies · Debt cycle position |
+> | **🟢 Risk-on** | Easing rates, low/falling VIX, early-to-mid debt cycle → boosts Lynch (+20%) and Simons (+10%) weights |
+> | **🔴 Risk-off / Deleveraging** | Tightening, rising VIX, late cycle → boosts Graham (+20–30%) and Buffett (+10%); deleveraging vetoes BUY calls |
+
 ---
 
 ### Peter Lynch — Growth & Momentum Screening
@@ -117,6 +141,14 @@ Dalio's output does not produce a signal for an individual stock. It returns a `
 
 **Output:** `{ signal: "buy" | "watch" | "avoid", confidence: 0–1, reasoning: string }`
 
+> **Quick Reference — Peter Lynch**
+> | | |
+> |---|---|
+> | **Philosophy** | Find growth before the institutions do — understand the business, trust the earnings trajectory. |
+> | **Key metrics** | PEG ratio · Earnings growth rate · Institutional ownership % · Insider activity |
+> | **🟢 BUY when** | PEG ≤ 1.0, earnings growing 15–30% YoY, low institutional ownership, insiders buying |
+> | **🔴 AVOID when** | PEG > 2.0, earnings growth stalling or negative, fully institutionally owned, insiders selling |
+
 ---
 
 ### Jim Simons — Quant Signals & Pattern Recognition
@@ -133,6 +165,14 @@ Dalio's output does not produce a signal for an individual stock. It returns a `
 **Signal behavior:** No opinion on the business. Purely statistical. Acts as a pattern-based counterweight to narrative-heavy agents. If Simons and Lynch both say buy, momentum is confirmed. If they diverge, flag for review.
 
 **Output:** `{ signal: "buy" | "watch" | "avoid", confidence: 0–1, reasoning: string }`
+
+> **Quick Reference — Jim Simons**
+> | | |
+> |---|---|
+> | **Philosophy** | The market has patterns — find them with math, not narrative. No opinions on the business. |
+> | **Key metrics** | RSI · MACD crossover · 50d/200d MA cross · 30/60/90d momentum |
+> | **🟢 BUY when** | RSI 40–65 trending up, bullish MACD crossover, golden cross (50d > 200d), positive momentum across windows |
+> | **🔴 AVOID when** | RSI > 75 (overbought) or < 25 with no reversal, bearish MACD, death cross (50d < 200d), negative multi-window momentum |
 
 ---
 
