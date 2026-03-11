@@ -655,6 +655,12 @@ function fmtCap(v) {
 let sortCol = 'score', sortDir = -1;
 let filterRec = 'all', filterSector = 'all', filterSearch = '';
 
+// ── Row cache (built once on DOMContentLoaded; avoids querySelectorAll) ───
+let _rowCache      = null;   // Array of .stock-row elements
+let _rowMap        = null;   // Map<ticker, stock-row element> for O(1) lookup
+let _openDetailRow = null;   // Currently-visible detail <tr>, or null
+let _openStockRow  = null;   // Currently-expanded stock <tr>, or null
+
 function sortBy(col) {
   if (sortCol === col) { sortDir = -sortDir; }
   else { sortCol = col; sortDir = (['ticker','sector'].includes(col)) ? 1 : -1; }
@@ -674,9 +680,11 @@ function setSectorFilter(val) {
   applyView();
 }
 
+let _searchTimer = null;
 function setSearch(val) {
   filterSearch = val.toLowerCase().trim();
-  applyView();
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(applyView, 16);
 }
 
 function togglePersonas() {
@@ -689,8 +697,12 @@ function togglePersonas() {
 
 // ── Apply current view (sort + filter) ───────────────────────────────────
 function applyView() {
-  const allRows = Array.from(document.querySelectorAll('.stock-row'));
-  const expandedTicker = document.querySelector('.stock-row.expanded')?.dataset.ticker;
+  // Use cached row list; fall back to live query on very first call
+  const allRows = _rowCache || Array.from(document.querySelectorAll('.stock-row'));
+
+  // Track which row was open so we can restore it after reorder
+  const openSR = _openStockRow;
+  const openDR = _openDetailRow;
 
   // 1. Filter
   const visible = allRows.filter(r => {
@@ -728,26 +740,30 @@ function applyView() {
     return cmp * sortDir;
   });
 
-  // 3. Hide all summary + detail rows
+  // 3. Hide all stock rows + the single open detail row (O(1) instead of querySelectorAll)
   allRows.forEach(r => { r.style.display = 'none'; });
-  document.querySelectorAll('.detail-row').forEach(r => { r.style.display = 'none'; });
+  if (openDR) openDR.style.display = 'none';
 
-  // 4. Show sorted/filtered rows in order
+  // 4. Batch-append sorted/filtered rows via DocumentFragment (single reflow)
   const tbody = document.querySelector('.results-table tbody');
+  const frag  = document.createDocumentFragment();
   visible.forEach((row, i) => {
     row.style.display = '';
     row.querySelector('.rank-cell').textContent = i + 1;
-    tbody.appendChild(row);
+    frag.appendChild(row);
     const dr = document.getElementById('dr-' + row.dataset.ticker);
-    if (dr) tbody.appendChild(dr);
+    if (dr) frag.appendChild(dr);
   });
+  tbody.appendChild(frag);
 
-  // 5. Restore expanded row if it's still visible
-  if (expandedTicker && visible.some(r => r.dataset.ticker === expandedTicker)) {
-    const dr = document.getElementById('dr-' + expandedTicker);
-    const sr = document.querySelector(`.stock-row[data-ticker="${expandedTicker}"]`);
-    if (dr) dr.style.display = '';
-    if (sr) sr.classList.add('expanded');
+  // 5. Restore expanded row if it's still in the visible set
+  if (openSR && visible.includes(openSR)) {
+    if (openDR) openDR.style.display = '';
+    openSR.classList.add('expanded');
+  } else {
+    // Expanded row was filtered out — clear trackers
+    _openDetailRow = null;
+    _openStockRow  = null;
   }
 
   // 6. Update sort header indicators
@@ -763,26 +779,48 @@ function applyView() {
 
 // ── Detail row toggle + lazy build ───────────────────────────────────────
 function toggleDetail(ticker) {
-  const dr = document.getElementById('dr-' + ticker);
-  const sr = document.querySelector(`.stock-row[data-ticker="${CSS.escape(ticker)}"]`);
-  if (!dr) return;
+  // O(1) lookup via Map; fall back to querySelector if cache not yet ready
+  const sr = (_rowMap && _rowMap.get(ticker))
+    || document.querySelector(`.stock-row[data-ticker="${CSS.escape(ticker)}"]`);
+  if (!sr) return;
 
-  const isOpen = dr.style.display !== 'none';
+  const alreadyOpen = (_openStockRow === sr);
 
-  // Close all open rows first
-  document.querySelectorAll('.detail-row').forEach(r => r.style.display = 'none');
-  document.querySelectorAll('.stock-row.expanded').forEach(r => r.classList.remove('expanded'));
+  // Close currently-open row (O(1) — no querySelectorAll scan)
+  if (_openDetailRow) { _openDetailRow.style.display = 'none'; _openDetailRow = null; }
+  if (_openStockRow)  { _openStockRow.classList.remove('expanded'); _openStockRow = null; }
 
-  if (!isOpen) {
-    // Lazy-build on first open
-    if (!dr.dataset.built) {
-      const inner = document.getElementById('di-' + ticker);
-      if (inner) inner.innerHTML = buildDetailHTML(ticker);
-      dr.dataset.built = '1';
-    }
-    dr.style.display = '';
-    if (sr) sr.classList.add('expanded');
+  if (alreadyOpen) return;   // clicked same row → just collapse, done
+
+  // Get or create the detail row (only ~1 DOM node created per unique ticker ever opened)
+  let dr = document.getElementById('dr-' + ticker);
+  if (!dr) {
+    dr = document.createElement('tr');
+    dr.className = 'detail-row';
+    dr.id = 'dr-' + ticker;
+    dr.style.display = 'none';
+    const td = document.createElement('td');
+    td.colSpan = 13;
+    const inner = document.createElement('div');
+    inner.className = 'detail-inner';
+    inner.id = 'di-' + ticker;
+    inner.innerHTML = '<div class="detail-loading">Loading\u2026</div>';
+    td.appendChild(inner);
+    dr.appendChild(td);
+    sr.after(dr);   // insert immediately after its stock-row
   }
+
+  // Lazy-build detail content on first open
+  if (!dr.dataset.built) {
+    const inner = dr.querySelector('.detail-inner');
+    if (inner) inner.innerHTML = buildDetailHTML(ticker);
+    dr.dataset.built = '1';
+  }
+
+  dr.style.display = '';
+  sr.classList.add('expanded');
+  _openDetailRow = dr;
+  _openStockRow  = sr;
 }
 
 // ── Detail HTML builder (from DETAIL_DATA) ───────────────────────────────
@@ -847,6 +885,9 @@ function buildDetailHTML(ticker) {
 
 // ── Init ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  // Build row cache and O(1) ticker lookup map once; reused by every applyView/toggleDetail call
+  _rowCache = Array.from(document.querySelectorAll('.stock-row'));
+  _rowMap   = new Map(_rowCache.map(r => [r.dataset.ticker, r]));
   applyView();
 });
 """
@@ -1269,13 +1310,6 @@ def _build_table_row(rank: int, result: dict) -> str:
   <td class="mono">{_e(price_str)}</td>
   <td class="mono">{_e(cap_str)}</td>
   <td><span class="expand-ind"></span></td>
-</tr>
-<tr class="detail-row" id="dr-{_e(ticker)}" style="display:none">
-  <td colspan="13">
-    <div class="detail-inner" id="di-{_e(ticker)}">
-      <div class="detail-loading">Loading…</div>
-    </div>
-  </td>
 </tr>"""
 
 

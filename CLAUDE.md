@@ -377,6 +377,7 @@ Only one row expands at a time. Clicking the same row collapses it. Clicking a d
 - **Degrade gracefully.** Missing yfinance fields reduce confidence but don't abort the run. Log to `missing_fields` and continue.
 - **One Dalio run per batch.** The macro snapshot is shared. Running Dalio per ticker wastes time and produces identical results.
 - **Cache aggressively.** yfinance data is cached 6h in `.tmp/`. NYSE ticker list is cached 24h. Reuse between runs within the TTL.
+- **Always commit and push after any file change.** Every task that modifies files must end with a `git add` → `git commit` → `git pull --rebase` → `git push`. Changes that aren't pushed haven't happened.
 
 ---
 
