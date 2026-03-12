@@ -614,6 +614,46 @@ a { color: var(--blue-light); text-decoration: none; }
                     width:10px; height:10px; border-radius:50%; background:var(--text); border:2px solid var(--bg); z-index:1; }
 .score-veto       { font-size:11px; color:var(--red-light); margin-top:4px; width:100%; }
 
+/* ── Pagination ────────────────────────────────────────────────── */
+.pagination        { display:flex; justify-content:center; align-items:center; gap:4px; padding:16px 0 8px; flex-wrap:wrap; }
+.page-btn          { min-width:34px; height:28px; padding:0 8px; border:1px solid var(--border);
+                     background:var(--bg-card); color:var(--text-muted); border-radius:4px;
+                     cursor:pointer; font-size:12px; transition:background .15s,color .15s; }
+.page-btn:hover:not(:disabled) { background:var(--bg-card2); color:var(--text); }
+.page-btn.active   { background:var(--blue-light); color:#0d1117; border-color:var(--blue-light); font-weight:700; }
+.page-btn:disabled { opacity:.35; cursor:default; }
+.page-btn.page-nav { padding:0 12px; }
+.page-ellipsis     { padding:0 4px; color:var(--text-faint); font-size:12px; line-height:28px; }
+
+/* ── Watchlist ──────────────────────────────────────────────────── */
+.favs-section      { border:1px solid var(--border); border-radius:8px; margin-bottom:12px; overflow:hidden; }
+.favs-header       { display:flex; align-items:center; gap:8px; padding:8px 14px;
+                     background:var(--bg-card); cursor:pointer; user-select:none; }
+.favs-title        { font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--text-faint); text-transform:uppercase; flex:1; }
+.favs-count        { font-size:11px; color:var(--text-muted); }
+.favs-toggle-btn   { font-size:11px; color:var(--blue-light); background:none; border:none; cursor:pointer; padding:2px 6px; }
+.favs-body         { display:none; padding:12px 14px; background:var(--bg); }
+.favs-body.open    { display:block; }
+.favs-empty        { font-size:12px; color:var(--text-faint); padding:4px 0; }
+.favs-panel        { display:flex; flex-wrap:wrap; gap:8px; }
+.fav-card          { position:relative; background:var(--bg-card); border:1px solid var(--border);
+                     border-radius:6px; padding:8px 28px 8px 10px; cursor:pointer; min-width:110px;
+                     transition:border-color .15s; }
+.fav-card:hover    { border-color:var(--blue-light); }
+.fav-ticker        { font-size:13px; font-weight:700; color:var(--text); line-height:1.2; }
+.fav-name          { font-size:10px; color:var(--text-faint); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+.fav-remove        { position:absolute; top:4px; right:6px; background:none; border:none;
+                     color:var(--text-faint); cursor:pointer; font-size:15px; line-height:1; padding:0; }
+.fav-remove:hover  { color:var(--red-light); }
+
+/* ── Pin button ─────────────────────────────────────────────────── */
+.action-cell       { white-space:nowrap; }
+.pin-btn           { background:none; border:none; color:var(--text-faint); cursor:pointer;
+                     font-size:14px; padding:0 4px 0 0; line-height:1; vertical-align:middle;
+                     transition:color .15s; }
+.pin-btn:hover     { color:var(--yellow-light); }
+.pin-btn.pinned    { color:var(--yellow-light); }
+
 /* ── Footer ───────────────────────────────────────────────────────── */
 footer { text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border-light); }
 
@@ -653,7 +693,14 @@ function fmtCap(v) {
 
 // ── Sort + filter state ───────────────────────────────────────────────────
 let sortCol = 'score', sortDir = -1;
-let filterRec = 'all', filterSector = 'all', filterSearch = '';
+let filterRec = 'BUY', filterSector = 'all', filterSearch = '';
+
+// ── Pagination state ──────────────────────────────────────────────────────
+let currentPage = 1;
+const PAGE_SIZE = 50;
+
+// ── Favorites (persisted to localStorage) ────────────────────────────────
+let _favorites = new Set(JSON.parse(localStorage.getItem('ms_favs') || '[]'));
 
 // ── Row cache (built once on DOMContentLoaded; avoids querySelectorAll) ───
 let _rowCache      = null;   // Array of .stock-row elements
@@ -664,7 +711,7 @@ let _openStockRow  = null;   // Currently-expanded stock <tr>, or null
 function sortBy(col) {
   if (sortCol === col) { sortDir = -sortDir; }
   else { sortCol = col; sortDir = (['ticker','sector'].includes(col)) ? 1 : -1; }
-  applyView();
+  applyView(true);
 }
 
 function setRecFilter(val) {
@@ -672,19 +719,19 @@ function setRecFilter(val) {
   document.querySelectorAll('.filter-btn[data-rec]').forEach(b => {
     b.className = 'filter-btn' + (b.dataset.rec === val ? ' active-' + (val === 'all' ? 'all' : val.toLowerCase()) : '');
   });
-  applyView();
+  applyView(true);
 }
 
 function setSectorFilter(val) {
   filterSector = val;
-  applyView();
+  applyView(true);
 }
 
 let _searchTimer = null;
 function setSearch(val) {
   filterSearch = val.toLowerCase().trim();
   clearTimeout(_searchTimer);
-  _searchTimer = setTimeout(applyView, 16);
+  _searchTimer = setTimeout(() => applyView(true), 16);
 }
 
 function togglePersonas() {
@@ -695,14 +742,118 @@ function togglePersonas() {
   if (btn) btn.textContent = open ? '\u25b2 Collapse' : '\u25bc Expand';
 }
 
-// ── Apply current view (sort + filter) ───────────────────────────────────
-function applyView() {
-  // Use cached row list; fall back to live query on very first call
-  const allRows = _rowCache || Array.from(document.querySelectorAll('.stock-row'));
+// ── Pagination controls ───────────────────────────────────────────────────
+function goToPage(n) {
+  currentPage = n;
+  applyView(false);
+  const wrap = document.querySelector('.results-wrap');
+  if (wrap) wrap.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
 
-  // Track which row was open so we can restore it after reorder
-  const openSR = _openStockRow;
-  const openDR = _openDetailRow;
+function renderPagination(total, totalPages) {
+  const el = document.getElementById('pagination');
+  if (!el) return;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  const prevOff = currentPage === 1          ? ' disabled' : '';
+  const nextOff = currentPage === totalPages ? ' disabled' : '';
+  // Pages: always show first, last, current ±2 — with ellipsis gaps
+  const show = new Set(
+    [1, totalPages, currentPage, currentPage-1, currentPage+1, currentPage-2, currentPage+2]
+    .filter(p => p >= 1 && p <= totalPages)
+  );
+  const sorted = [...show].sort((a,b) => a-b);
+  let last = 0, btns = '';
+  for (const p of sorted) {
+    if (last && p - last > 1) btns += '<span class="page-ellipsis">&hellip;</span>';
+    btns += `<button class="page-btn${p === currentPage ? ' active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+    last = p;
+  }
+  el.innerHTML =
+    `<button class="page-btn page-nav"${prevOff} onclick="goToPage(${currentPage-1})">&laquo; Prev</button>` +
+    btns +
+    `<button class="page-btn page-nav"${nextOff} onclick="goToPage(${currentPage+1})">Next &raquo;</button>`;
+}
+
+// ── Watchlist / Favorites ─────────────────────────────────────────────────
+function toggleFavs() {
+  const body = document.getElementById('favs-body');
+  const btn  = document.getElementById('favs-toggle-btn');
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (btn) btn.textContent = open ? '\u25b2 Collapse' : '\u25bc Expand';
+}
+
+function toggleFav(ticker) {
+  if (_favorites.has(ticker)) {
+    _favorites.delete(ticker);
+  } else {
+    _favorites.add(ticker);
+  }
+  localStorage.setItem('ms_favs', JSON.stringify([..._favorites]));
+  // Update every pin button for this ticker
+  document.querySelectorAll(`.pin-btn[data-ticker="${CSS.escape(ticker)}"]`).forEach(b => {
+    if (_favorites.has(ticker)) { b.textContent = '\u2605'; b.classList.add('pinned'); }
+    else                        { b.textContent = '\u2606'; b.classList.remove('pinned'); }
+  });
+  renderFavorites();
+}
+
+function renderFavorites() {
+  const panel    = document.getElementById('favs-panel');
+  const countEl  = document.getElementById('favs-count');
+  const body     = document.getElementById('favs-body');
+  const toggleEl = document.getElementById('favs-toggle-btn');
+  if (!panel) return;
+  const n = _favorites.size;
+  if (countEl) countEl.textContent = n > 0 ? `${n} stock${n !== 1 ? 's' : ''}` : '';
+  if (n === 0) {
+    panel.innerHTML = '<div class="favs-empty">No stocks pinned yet \u2014 click \u2606 on any row to add to your watchlist.</div>';
+    return;
+  }
+  // Auto-open the panel the first time a stock is pinned
+  if (body && !body.classList.contains('open')) {
+    body.classList.add('open');
+    if (toggleEl) toggleEl.textContent = '\u25b2 Collapse';
+  }
+  const cards = [..._favorites].map(ticker => {
+    const r = _rowMap && _rowMap.get(ticker);
+    if (!r) return '';
+    const score = parseFloat(r.dataset.score).toFixed(3);
+    const rec   = (r.dataset.rec || 'watch').toLowerCase();
+    const name  = r.dataset.name || '';
+    const short = name.length > 18 ? name.substring(0, 18) + '\u2026' : name;
+    return `<div class="fav-card" onclick="scrollToTicker('${CSS.escape(ticker)}')">` +
+      `<div class="fav-ticker">${esc(ticker)}</div>` +
+      `<div class="fav-name">${esc(short)}</div>` +
+      `<span class="badge badge-${rec}">${score}</span>` +
+      `<button class="fav-remove" onclick="event.stopPropagation();toggleFav('${CSS.escape(ticker)}')">&times;</button>` +
+      `</div>`;
+  }).filter(Boolean).join('');
+  panel.innerHTML = cards || '<div class="favs-empty">No pinned stocks found in current data.</div>';
+}
+
+function scrollToTicker(ticker) {
+  // Reset to All filter and search for the ticker, then navigate to its page
+  filterRec    = 'all';
+  filterSearch = ticker;
+  document.querySelectorAll('.filter-btn[data-rec]').forEach(b => {
+    b.className = 'filter-btn' + (b.dataset.rec === 'all' ? ' active-all' : '');
+  });
+  const searchEl = document.querySelector('.filter-search');
+  if (searchEl) searchEl.value = ticker;
+  applyView(true);
+  // Scroll to the row after the DOM updates
+  setTimeout(() => {
+    const sr = _rowMap && _rowMap.get(ticker);
+    if (sr) sr.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }, 60);
+}
+
+// ── Apply current view (sort + filter + paginate) ────────────────────────
+function applyView(resetPage = false) {
+  const allRows = _rowCache || Array.from(document.querySelectorAll('.stock-row'));
+  const openSR  = _openStockRow;
+  const openDR  = _openDetailRow;
 
   // 1. Filter
   const visible = allRows.filter(r => {
@@ -740,41 +891,57 @@ function applyView() {
     return cmp * sortDir;
   });
 
-  // 3. Hide all stock rows + the single open detail row (O(1) instead of querySelectorAll)
+  // 3. Pagination — slice to current page
+  if (resetPage) currentPage = 1;
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageRows  = visible.slice(pageStart, pageStart + PAGE_SIZE);
+
+  // 4. Hide all stock rows + the single open detail row (O(1))
   allRows.forEach(r => { r.style.display = 'none'; });
   if (openDR) openDR.style.display = 'none';
 
-  // 4. Batch-append sorted/filtered rows via DocumentFragment (single reflow)
+  // 5. Batch-append current page rows via DocumentFragment (single reflow)
   const tbody = document.querySelector('.results-table tbody');
   const frag  = document.createDocumentFragment();
-  visible.forEach((row, i) => {
+  pageRows.forEach((row, i) => {
     row.style.display = '';
-    row.querySelector('.rank-cell').textContent = i + 1;
+    row.querySelector('.rank-cell').textContent = pageStart + i + 1;
     frag.appendChild(row);
     const dr = document.getElementById('dr-' + row.dataset.ticker);
     if (dr) frag.appendChild(dr);
   });
   tbody.appendChild(frag);
 
-  // 5. Restore expanded row if it's still in the visible set
-  if (openSR && visible.includes(openSR)) {
+  // 6. Restore expanded row if it's on the current page
+  if (openSR && pageRows.includes(openSR)) {
     if (openDR) openDR.style.display = '';
     openSR.classList.add('expanded');
   } else {
-    // Expanded row was filtered out — clear trackers
     _openDetailRow = null;
     _openStockRow  = null;
   }
 
-  // 6. Update sort header indicators
+  // 7. Update sort header indicators
   document.querySelectorAll('th[data-col]').forEach(th => {
     th.classList.remove('sort-asc','sort-desc');
     if (th.dataset.col === sortCol) th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
   });
 
-  // 7. Update showing count
+  // 8. Update showing count
   const countEl = document.getElementById('showing-count');
-  if (countEl) countEl.textContent = `Showing ${visible.length} of ${allRows.length} stocks`;
+  if (countEl) {
+    if (visible.length === 0) {
+      countEl.textContent = 'No stocks match current filters';
+    } else {
+      const end = Math.min(pageStart + PAGE_SIZE, visible.length);
+      countEl.textContent = `Showing ${pageStart + 1}\u2013${end} of ${visible.length} stocks`;
+    }
+  }
+
+  // 9. Render pagination controls
+  renderPagination(visible.length, totalPages);
 }
 
 // ── Detail row toggle + lazy build ───────────────────────────────────────
@@ -885,10 +1052,28 @@ function buildDetailHTML(ticker) {
 
 // ── Init ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  // Build row cache and O(1) ticker lookup map once; reused by every applyView/toggleDetail call
+  // Build row cache + O(1) Map once; used by every applyView / toggleDetail call
   _rowCache = Array.from(document.querySelectorAll('.stock-row'));
   _rowMap   = new Map(_rowCache.map(r => [r.dataset.ticker, r]));
-  applyView();
+
+  // Restore pinned state on pin buttons from localStorage
+  _rowCache.forEach(r => {
+    const btn = r.querySelector('.pin-btn');
+    if (btn && _favorites.has(r.dataset.ticker)) {
+      btn.textContent = '\u2605';
+      btn.classList.add('pinned');
+    }
+  });
+
+  // Set BUY as the active filter button (matches default filterRec = 'BUY')
+  document.querySelectorAll('.filter-btn[data-rec]').forEach(b => {
+    b.className = 'filter-btn' + (b.dataset.rec === 'BUY' ? ' active-buy' : '');
+  });
+
+  // Render watchlist from localStorage
+  renderFavorites();
+
+  applyView(false);
 });
 """
 
@@ -1309,7 +1494,10 @@ def _build_table_row(rank: int, result: dict) -> str:
   <td>{_e(sector)}</td>
   <td class="mono">{_e(price_str)}</td>
   <td class="mono">{_e(cap_str)}</td>
-  <td><span class="expand-ind"></span></td>
+  <td class="action-cell">
+    <button class="pin-btn" onclick="event.stopPropagation();toggleFav('{_ej(ticker)}')" data-ticker="{_e(ticker)}" title="Pin to watchlist">&#9734;</button>
+    <span class="expand-ind"></span>
+  </td>
 </tr>"""
 
 
@@ -1416,13 +1604,27 @@ def _build_dashboard_html(results: list[dict], dalio_result: dict | None) -> str
   </div>
 </div>
 
+<!-- Watchlist -->
+<div class="favs-section">
+  <div class="favs-header" onclick="toggleFavs()">
+    <span class="favs-title">&#9733; Watchlist</span>
+    <span id="favs-count" class="favs-count"></span>
+    <button class="favs-toggle-btn" id="favs-toggle-btn">&#9660; Expand</button>
+  </div>
+  <div class="favs-body" id="favs-body">
+    <div class="favs-panel" id="favs-panel">
+      <div class="favs-empty">No stocks pinned yet &#8212; click &#9734; on any row to add to your watchlist.</div>
+    </div>
+  </div>
+</div>
+
 <!-- Filter bar -->
 <div class="filter-bar">
   <div class="filter-group">
-    <button class="filter-btn active-all" data-rec="all"   onclick="setRecFilter('all')">All</button>
-    <button class="filter-btn"            data-rec="BUY"   onclick="setRecFilter('BUY')">🟢 BUY</button>
-    <button class="filter-btn"            data-rec="WATCH" onclick="setRecFilter('WATCH')">🟡 WATCH</button>
-    <button class="filter-btn"            data-rec="AVOID" onclick="setRecFilter('AVOID')">🔴 AVOID</button>
+    <button class="filter-btn"            data-rec="all"   onclick="setRecFilter('all')">All</button>
+    <button class="filter-btn"            data-rec="BUY"   onclick="setRecFilter('BUY')">&#x1F7E2; BUY</button>
+    <button class="filter-btn"            data-rec="WATCH" onclick="setRecFilter('WATCH')">&#x1F7E1; WATCH</button>
+    <button class="filter-btn"            data-rec="AVOID" onclick="setRecFilter('AVOID')">&#x1F534; AVOID</button>
   </div>
   <select class="filter-select" onchange="setSectorFilter(this.value)">
     <option value="all">All Sectors</option>
@@ -1457,6 +1659,8 @@ def _build_dashboard_html(results: list[dict], dalio_result: dict | None) -> str
   </tbody>
 </table>
 </div>
+
+<div id="pagination" class="pagination"></div>
 
 <footer>
   MARKET SIGNUM · Generated {_e(now_str)} · {_e(total)} stocks · Data via yfinance · Educational use only — not investment advice
