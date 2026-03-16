@@ -898,30 +898,23 @@ function applyView(resetPage = false) {
   const pageStart = (currentPage - 1) * PAGE_SIZE;
   const pageRows  = visible.slice(pageStart, pageStart + PAGE_SIZE);
 
-  // 4. Hide all stock rows + the single open detail row (O(1))
-  allRows.forEach(r => { r.style.display = 'none'; });
-  if (openDR) openDR.style.display = 'none';
-
-  // 5. Batch-append current page rows via DocumentFragment (single reflow)
+  // 4. Drain tbody — physically remove all children (O(page_size ≤ 51), not O(1329)).
+  //    Stock rows stay alive via _rowCache; detail rows stay alive via sr._detailRow.
+  //    Expand state always collapses on any view change (filter / sort / page).
   const tbody = document.querySelector('.results-table tbody');
-  const frag  = document.createDocumentFragment();
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  if (openSR) openSR.classList.remove('expanded');
+  _openDetailRow = null;
+  _openStockRow  = null;
+
+  // 5. Append exactly the current-page rows — no display toggling needed.
+  //    tbody will hold ≤ 50 rows; all others are detached from the DOM.
+  const frag = document.createDocumentFragment();
   pageRows.forEach((row, i) => {
-    row.style.display = '';
     row.querySelector('.rank-cell').textContent = pageStart + i + 1;
     frag.appendChild(row);
-    const dr = document.getElementById('dr-' + row.dataset.ticker);
-    if (dr) frag.appendChild(dr);
   });
   tbody.appendChild(frag);
-
-  // 6. Restore expanded row if it's on the current page
-  if (openSR && pageRows.includes(openSR)) {
-    if (openDR) openDR.style.display = '';
-    openSR.classList.add('expanded');
-  } else {
-    _openDetailRow = null;
-    _openStockRow  = null;
-  }
 
   // 7. Update sort header indicators
   document.querySelectorAll('th[data-col]').forEach(th => {
@@ -959,13 +952,13 @@ function toggleDetail(ticker) {
 
   if (alreadyOpen) return;   // clicked same row → just collapse, done
 
-  // Get or create the detail row (only ~1 DOM node created per unique ticker ever opened)
-  let dr = document.getElementById('dr-' + ticker);
+  // Get or create the detail row. Store reference on the stock row element so it
+  // survives being detached from the DOM between page/filter/sort changes.
+  let dr = sr._detailRow;
   if (!dr) {
     dr = document.createElement('tr');
     dr.className = 'detail-row';
     dr.id = 'dr-' + ticker;
-    dr.style.display = 'none';
     const td = document.createElement('td');
     td.colSpan = 13;
     const inner = document.createElement('div');
@@ -974,7 +967,7 @@ function toggleDetail(ticker) {
     inner.innerHTML = '<div class="detail-loading">Loading\u2026</div>';
     td.appendChild(inner);
     dr.appendChild(td);
-    sr.after(dr);   // insert immediately after its stock-row
+    sr._detailRow = dr;   // keep reference; row is detached until sr.after() below
   }
 
   // Lazy-build detail content on first open
@@ -984,7 +977,7 @@ function toggleDetail(ticker) {
     dr.dataset.built = '1';
   }
 
-  dr.style.display = '';
+  sr.after(dr);   // (re-)insert into the 50-row tbody immediately after its stock row
   sr.classList.add('expanded');
   _openDetailRow = dr;
   _openStockRow  = sr;
@@ -1055,6 +1048,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Build row cache + O(1) Map once; used by every applyView / toggleDetail call
   _rowCache = Array.from(document.querySelectorAll('.stock-row'));
   _rowMap   = new Map(_rowCache.map(r => [r.dataset.ticker, r]));
+
+  // Pre-detach ALL rows from the tbody immediately. applyView() will append only
+  // the first page (≤ 50 rows). Rows stay alive via _rowCache references.
+  // This means the tbody is empty before the first applyView(), so the drain loop
+  // in applyView() is O(0) on first call instead of O(1329).
+  const _initFrag = document.createDocumentFragment();
+  _rowCache.forEach(r => _initFrag.appendChild(r));
 
   // Restore pinned state on pin buttons from localStorage
   _rowCache.forEach(r => {
