@@ -977,7 +977,8 @@ function toggleDetail(ticker) {
     dr.dataset.built = '1';
   }
 
-  sr.after(dr);   // (re-)insert into the 50-row tbody immediately after its stock row
+  sr.after(dr);          // (re-)insert into the 50-row tbody immediately after its stock row
+  dr.style.display = ''; // clear any inline display:none left by a previous close
   sr.classList.add('expanded');
   _openDetailRow = dr;
   _openStockRow  = sr;
